@@ -1,0 +1,63 @@
+{
+  "session_id": "2025_ESP_FP2",
+  "display_name": "Spanish Grand Prix 2025 \u00b7 FP2",
+  "n_laps": 520,
+  "n_clean_laps": 306,
+  "health": 69.9,
+  "health_components": {
+    "clean_lap_yield": 0.588,
+    "compound_coverage": 0.667,
+    "traffic_rate": 0.181,
+    "session_completeness": 1.0
+  },
+  "sufficiency": {
+    "SOFT": {
+      "state": "AMBER",
+      "n_clean_laps": 216,
+      "sigma_s_per_lap": 0.021,
+      "mechanism": "thermal \u00b7 cliff beyond E \u2248 18"
+    },
+    "MEDIUM": {
+      "state": "GREEN",
+      "n_clean_laps": 90,
+      "sigma_s_per_lap": 0.014,
+      "mechanism": "abrasion \u00b7 linear"
+    },
+    "HARD": {
+      "state": "RED",
+      "n_clean_laps": 0,
+      "sigma_s_per_lap": 0.061,
+      "mechanism": null
+    }
+  },
+  "presets": [
+    {
+      "key": "broken-baseline",
+      "title": "The Broken Baseline",
+      "purpose": "Naive fitting gives a negative slope",
+      "session_id": null,
+      "available": false
+    },
+    {
+      "key": "clean-case",
+      "title": "The Clean Case",
+      "purpose": "High health score and a clear soft-compound cliff",
+      "session_id": "2025_ESP_FP2",
+      "available": true
+    },
+    {
+      "key": "hard-case",
+      "title": "The Hard Case",
+      "purpose": "Low health score \u2014 the confidence gate refuses to answer",
+      "session_id": null,
+      "available": false
+    },
+    {
+      "key": "validated-case",
+      "title": "The Validated Case",
+      "purpose": "Smallest practice\u2192race backtest error",
+      "session_id": null,
+      "available": false
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "session_id": "2025_ESP_FP2",
+    "filter_name": "in_out_laps",
+    "filter_order": 1,
+    "rows_in": 520,
+    "rows_removed": 120,
+    "reason": "pit in/out laps are not degradation observations"
+  },
+  {
+    "session_id": "2025_ESP_FP2",
+    "filter_name": "neutralisation",
+    "filter_order": 2,
+    "rows_in": 400,
+    "rows_removed": 0,
+    "reason": "SC/VSC/yellow/red laps"
+  },
+  {
+    "session_id": "2025_ESP_FP2",
+    "filter_name": "inaccurate",
+    "filter_order": 3,
+    "rows_in": 400,
+    "rows_removed": 0,
+    "reason": "FastF1 IsAccurate == False"
+  },
+  {
+    "session_id": "2025_ESP_FP2",
+    "filter_name": "outlier_107pct",
+    "filter_order": 4,
+    "rows_in": 400,
+    "rows_removed": 0,
+    "reason": "outside 107% of driver stint median"
+  },
+  {
+    "session_id": "2025_ESP_FP2",
+    "filter_name": "traffic",
+    "filter_order": 5,
+    "rows_in": 400,
+    "rows_removed": 94,
+    "reason": ">20% of lap within dirty-air threshold"
+  }
+]

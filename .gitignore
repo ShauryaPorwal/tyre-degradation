@@ -1,0 +1,27 @@
+# data — raw cache is huge and immutable, interim/processed are regenerable
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+uv.lock
+
+# node
+web/node_modules/
+web/.next/
+web/out/
+
+# os
+.DS_Store
+
+.env
+.env.*

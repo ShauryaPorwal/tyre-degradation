@@ -1,0 +1,5 @@
+# F76 — series config layer proof: same pipeline, different series.
+# Values TODO when Formula E support is actually exercised (Phase 7 stretch).
+series: FE
+seasons: {}
+sessions: [FP1, FP2, Q, R]

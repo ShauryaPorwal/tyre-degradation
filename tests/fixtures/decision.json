@@ -1,0 +1,107 @@
+{
+  "session_id": "2025_ESP_FP2",
+  "model_version": "fixture_v1",
+  "sigma_resid_s": 0.13,
+  "recommendations": [
+    {
+      "compound": "HARD",
+      "laps": 12,
+      "expected_uncertainty_reduction": 0.476,
+      "current_sigma": 0.061,
+      "projected_sigma": 0.032,
+      "reason": "Hard has the fewest clean laps (0); it also has the widest posterior (\u00b10.061 s/lap); it is still blocking one-stop feasibility.",
+      "one_stop_prob_before": 0.48,
+      "one_stop_prob_after": 0.76
+    },
+    {
+      "compound": "HARD",
+      "laps": 8,
+      "expected_uncertainty_reduction": 0.398,
+      "current_sigma": 0.061,
+      "projected_sigma": 0.0367,
+      "reason": "Hard has the fewest clean laps (0); it also has the widest posterior (\u00b10.061 s/lap); it is still blocking one-stop feasibility."
+    },
+    {
+      "compound": "HARD",
+      "laps": 5,
+      "expected_uncertainty_reduction": 0.31,
+      "current_sigma": 0.061,
+      "projected_sigma": 0.0421,
+      "reason": "Hard has the fewest clean laps (0); it also has the widest posterior (\u00b10.061 s/lap); it is still blocking one-stop feasibility."
+    },
+    {
+      "compound": "SOFT",
+      "laps": 12,
+      "expected_uncertainty_reduction": 0.127,
+      "current_sigma": 0.021,
+      "projected_sigma": 0.0183,
+      "reason": "Soft posterior is \u00b10.021 s/lap from 216 clean laps."
+    },
+    {
+      "compound": "SOFT",
+      "laps": 8,
+      "expected_uncertainty_reduction": 0.09,
+      "current_sigma": 0.021,
+      "projected_sigma": 0.0191,
+      "reason": "Soft posterior is \u00b10.021 s/lap from 216 clean laps."
+    },
+    {
+      "compound": "MEDIUM",
+      "laps": 12,
+      "expected_uncertainty_reduction": 0.063,
+      "current_sigma": 0.014,
+      "projected_sigma": 0.0131,
+      "reason": "Medium posterior is \u00b10.014 s/lap from 90 clean laps."
+    },
+    {
+      "compound": "SOFT",
+      "laps": 5,
+      "expected_uncertainty_reduction": 0.059,
+      "current_sigma": 0.021,
+      "projected_sigma": 0.0198,
+      "reason": "Soft posterior is \u00b10.021 s/lap from 216 clean laps."
+    },
+    {
+      "compound": "MEDIUM",
+      "laps": 8,
+      "expected_uncertainty_reduction": 0.043,
+      "current_sigma": 0.014,
+      "projected_sigma": 0.0134,
+      "reason": "Medium posterior is \u00b10.014 s/lap from 90 clean laps."
+    },
+    {
+      "compound": "MEDIUM",
+      "laps": 5,
+      "expected_uncertainty_reduction": 0.028,
+      "current_sigma": 0.014,
+      "projected_sigma": 0.0136,
+      "reason": "Medium posterior is \u00b10.014 s/lap from 90 clean laps."
+    }
+  ],
+  "knowledge_gaps": [
+    {
+      "compound": "HARD",
+      "sigma": 0.061,
+      "n_clean_laps": 0,
+      "state": "RED",
+      "blocks": "one-stop feasibility",
+      "impact": "HIGH"
+    },
+    {
+      "compound": "SOFT",
+      "sigma": 0.021,
+      "n_clean_laps": 216,
+      "state": "AMBER",
+      "blocks": null,
+      "impact": "LOW"
+    },
+    {
+      "compound": "MEDIUM",
+      "sigma": 0.014,
+      "n_clean_laps": 90,
+      "state": "GREEN",
+      "blocks": null,
+      "impact": "LOW"
+    }
+  ]
+}

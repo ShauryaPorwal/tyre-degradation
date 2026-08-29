@@ -1,0 +1,45 @@
+{
+  "session_id": "2025_ESP_FP2",
+  "reference_driver": "NOR",
+  "target_driver": "VER",
+  "apparent_gap_s": 0.42,
+  "components": [
+    {
+      "label": "Fuel load delta",
+      "value_s": 0.31,
+      "ci": [
+        0.24,
+        0.38
+      ]
+    },
+    {
+      "label": "Track evolution",
+      "value_s": 0.06,
+      "ci": [
+        0.03,
+        0.09
+      ]
+    },
+    {
+      "label": "Traffic exposure",
+      "value_s": 0.03,
+      "ci": [
+        0.01,
+        0.05
+      ]
+    },
+    {
+      "label": "Push level",
+      "value_s": 0.02,
+      "ci": [
+        -0.02,
+        0.06
+      ]
+    }
+  ],
+  "true_deficit_s": 0.0,
+  "true_deficit_ci": [
+    -0.07,
+    0.07
+  ]
+}

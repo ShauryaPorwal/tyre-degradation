@@ -1,0 +1,125 @@
+{
+  "session_id": "2025_ESP_FP2",
+  "model_version": "fixture_v1",
+  "n_clean_laps": 214,
+  "confidence_gate": "PASS",
+  "compounds": {
+    "SOFT": {
+      "base_pace": 78.42,
+      "base_pace_ci": [
+        78.31,
+        78.53
+      ],
+      "slope_per_energy": 0.0031,
+      "slope_ci": [
+        0.0024,
+        0.0039
+      ],
+      "slope_per_lap_equiv": 0.087,
+      "cliff": {
+        "knot_energy": 18.2,
+        "extra_slope": 0.21,
+        "evidence_sse_reduction": 0.34,
+        "accepted": true
+      }
+    },
+    "MEDIUM": {
+      "base_pace": 78.97,
+      "base_pace_ci": [
+        78.86,
+        79.08
+      ],
+      "slope_per_energy": 0.0021,
+      "slope_ci": [
+        0.0016,
+        0.0026
+      ],
+      "slope_per_lap_equiv": 0.059,
+      "cliff": {
+        "knot_energy": null,
+        "extra_slope": null,
+        "evidence_sse_reduction": null,
+        "accepted": false
+      }
+    },
+    "HARD": {
+      "base_pace": 79.47,
+      "base_pace_ci": [
+        79.36,
+        79.58
+      ],
+      "slope_per_energy": 0.0013,
+      "slope_ci": [
+        0.001,
+        0.0016
+      ],
+      "slope_per_lap_equiv": 0.037,
+      "cliff": {
+        "knot_energy": null,
+        "extra_slope": null,
+        "evidence_sse_reduction": null,
+        "accepted": false
+      }
+    }
+  },
+  "track_evolution": [
+    [
+      0.0,
+      -0.0
+    ],
+    [
+      300.0,
+      -0.154
+    ],
+    [
+      600.0,
+      -0.28
+    ],
+    [
+      900.0,
+      -0.384
+    ],
+    [
+      1200.0,
+      -0.468
+    ],
+    [
+      1500.0,
+      -0.537
+    ],
+    [
+      1800.0,
+      -0.594
+    ],
+    [
+      2100.0,
+      -0.64
+    ],
+    [
+      2400.0,
+      -0.678
+    ],
+    [
+      2700.0,
+      -0.709
+    ],
+    [
+      3000.0,
+      -0.735
+    ],
+    [
+      3300.0,
+      -0.756
+    ],
+    [
+      3600.0,
+      -0.773
+    ]
+  ],
+  "confounder_decomposition": {
+    "fuel_s_per_lap": 0.31,
+    "track_evo_s_per_lap": 0.06,
+    "traffic_s_per_lap": 0.03,
+    "residual_true_deficit": 0.0
+  }
+}

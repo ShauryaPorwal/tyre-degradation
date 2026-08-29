@@ -1,0 +1,5 @@
+# F76 — series config layer proof: same pipeline, different series.
+# Values TODO when F2 support is actually exercised (Phase 7 stretch).
+series: F2
+seasons: {}
+sessions: [FP, Q, SR, FR]

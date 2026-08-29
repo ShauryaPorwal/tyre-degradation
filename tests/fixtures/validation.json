@@ -1,0 +1,128 @@
+{
+  "frozen": false,
+  "note": "FIXTURE \u2014 synthetic placeholder until results/frozen_v1.json exists (Phase 5)",
+  "table": [
+    {
+      "method": "A \u2014 Naive lap_time ~ age",
+      "mae": 0.311,
+      "compound_order_pct": 42,
+      "infeasible_stint_pct": 74,
+      "coverage_90": null
+    },
+    {
+      "method": "B \u2014 Fixed 0.03 s/kg (industry)",
+      "mae": 0.242,
+      "compound_order_pct": 55,
+      "infeasible_stint_pct": 61,
+      "coverage_90": null
+    },
+    {
+      "method": "C \u2014 Clamped slope (published SOTA)",
+      "mae": 0.219,
+      "compound_order_pct": 63,
+      "infeasible_stint_pct": 38,
+      "coverage_90": null
+    },
+    {
+      "method": "D \u2014 ARIMA",
+      "mae": 0.256,
+      "compound_order_pct": 49,
+      "infeasible_stint_pct": 66,
+      "coverage_90": null
+    },
+    {
+      "method": "CLEANROOM (MixedLM)",
+      "mae": 0.147,
+      "compound_order_pct": 82,
+      "infeasible_stint_pct": 6,
+      "coverage_90": 87
+    },
+    {
+      "method": "CLEANROOM (Hierarchical)",
+      "mae": 0.128,
+      "compound_order_pct": 88,
+      "infeasible_stint_pct": 3,
+      "coverage_90": 91
+    }
+  ],
+  "reliability": [
+    {
+      "nominal": 10,
+      "empirical": 7.6
+    },
+    {
+      "nominal": 20,
+      "empirical": 20.3
+    },
+    {
+      "nominal": 30,
+      "empirical": 30.2
+    },
+    {
+      "nominal": 40,
+      "empirical": 37.3
+    },
+    {
+      "nominal": 50,
+      "empirical": 50.0
+    },
+    {
+      "nominal": 60,
+      "empirical": 61.2
+    },
+    {
+      "nominal": 70,
+      "empirical": 69.0
+    },
+    {
+      "nominal": 80,
+      "empirical": 84.4
+    },
+    {
+      "nominal": 90,
+      "empirical": 93.1
+    }
+  ],
+  "ablation": [
+    {
+      "config": "Full model",
+      "mae": 0.128,
+      "delta": 0.0
+    },
+    {
+      "config": "\u2212 fuel estimation (fixed 0.03)",
+      "mae": 0.171,
+      "delta": 0.043
+    },
+    {
+      "config": "\u2212 tyre energy (lap count)",
+      "mae": 0.158,
+      "delta": 0.03
+    },
+    {
+      "config": "\u2212 track evolution latent",
+      "mae": 0.166,
+      "delta": 0.038
+    },
+    {
+      "config": "\u2212 traffic exposure",
+      "mae": 0.139,
+      "delta": 0.011
+    },
+    {
+      "config": "\u2212 push level latent",
+      "mae": 0.144,
+      "delta": 0.016
+    },
+    {
+      "config": "\u2212 skew-t (Gaussian noise)",
+      "mae": 0.135,
+      "delta": 0.007
+    },
+    {
+      "config": "\u2212 cliff mining",
+      "mae": 0.141,
+      "delta": 0.013
+    }
+  ]
+}

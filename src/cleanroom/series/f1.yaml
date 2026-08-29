@@ -1,0 +1,15 @@
+# F14 — season rules config, Formula 1.
+# Sources: FIA F1 Technical & Sporting Regulations; Pirelli press releases.
+series: F1
+seasons:
+  2025:
+    min_car_weight_kg: 800        # FIA Tech Regs 2025, incl. driver
+    max_race_fuel_kg: 110         # FIA Tech Regs
+    compound_range: [C1, C2, C3, C4, C5, C6]
+    fuel_sample_l: 1.0            # must remain post-race -> ~1-2 kg anchor (F29)
+  2026:
+    min_car_weight_kg: 768        # FIA 2026 Tech Regs draft
+    max_race_fuel_kg: 70          # 2026 sustainable-fuel energy limit era
+    compound_range: [C1, C2, C3, C4, C5]   # C6 dropped for 2026 (Pirelli)
+    tyre_width_change_mm: {front: -25, rear: -30}   # Pirelli 2026 spec
+sessions: [FP1, FP2, FP3, Q, R]

@@ -1,0 +1,177 @@
+{
+  "session_id": "2025_ESP_FP2",
+  "compound": "SOFT",
+  "true_slope": 0.0031,
+  "frames": [
+    {
+      "lap": 4,
+      "n_clean_laps": 18,
+      "slope": 0.00412,
+      "slope_ci": [
+        -0.00947,
+        0.01772
+      ],
+      "gate": "INSUFFICIENT_DATA"
+    },
+    {
+      "lap": 6,
+      "n_clean_laps": 28,
+      "slope": -0.00014,
+      "slope_ci": [
+        -0.00977,
+        0.00949
+      ],
+      "gate": "INSUFFICIENT_DATA"
+    },
+    {
+      "lap": 8,
+      "n_clean_laps": 37,
+      "slope": 0.00543,
+      "slope_ci": [
+        -0.00211,
+        0.01297
+      ],
+      "gate": "INSUFFICIENT_DATA"
+    },
+    {
+      "lap": 10,
+      "n_clean_laps": 47,
+      "slope": 0.00351,
+      "slope_ci": [
+        -0.00272,
+        0.00975
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 12,
+      "n_clean_laps": 56,
+      "slope": 0.00027,
+      "slope_ci": [
+        -0.00507,
+        0.00561
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 14,
+      "n_clean_laps": 65,
+      "slope": 0.00076,
+      "slope_ci": [
+        -0.00392,
+        0.00545
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 16,
+      "n_clean_laps": 75,
+      "slope": 0.00244,
+      "slope_ci": [
+        -0.00174,
+        0.00662
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 18,
+      "n_clean_laps": 84,
+      "slope": 0.00477,
+      "slope_ci": [
+        0.00099,
+        0.00856
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 20,
+      "n_clean_laps": 94,
+      "slope": 0.00215,
+      "slope_ci": [
+        -0.00132,
+        0.00561
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 22,
+      "n_clean_laps": 103,
+      "slope": 0.00307,
+      "slope_ci": [
+        -0.00012,
+        0.00626
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 24,
+      "n_clean_laps": 112,
+      "slope": 0.00265,
+      "slope_ci": [
+        -0.00032,
+        0.00561
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 26,
+      "n_clean_laps": 122,
+      "slope": 0.00229,
+      "slope_ci": [
+        -0.00048,
+        0.00506
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 28,
+      "n_clean_laps": 131,
+      "slope": 0.00319,
+      "slope_ci": [
+        0.00059,
+        0.00579
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 30,
+      "n_clean_laps": 141,
+      "slope": 0.00379,
+      "slope_ci": [
+        0.00134,
+        0.00624
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 32,
+      "n_clean_laps": 150,
+      "slope": 0.00308,
+      "slope_ci": [
+        0.00076,
+        0.0054
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 34,
+      "n_clean_laps": 159,
+      "slope": 0.00297,
+      "slope_ci": [
+        0.00077,
+        0.00517
+      ],
+      "gate": "PASS"
+    },
+    {
+      "lap": 36,
+      "n_clean_laps": 169,
+      "slope": 0.00225,
+      "slope_ci": [
+        0.00015,
+        0.00435
+      ],
+      "gate": "PASS"
+    }
+  ]
+}
