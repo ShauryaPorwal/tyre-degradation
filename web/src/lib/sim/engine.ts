@@ -23,6 +23,7 @@ import {
   CONF_HIGH_RATIO,
   CONF_MED_RATIO,
   EVO_TAU_LAPS,
+  MIN_CLEAN_LAPS_FOR_EVIDENCE,
   PIT_LOSS_FALLBACK_S,
   PRIOR_DOMINATED_VAR_RATIO,
   PRIORS,
@@ -33,26 +34,13 @@ import {
   TRAFFIC_GAP_S,
   TYPICAL_STINT_LAPS,
 } from "./constants";
+import {
+  costForPit,
+  estimatePitNowProb,
+  findOptimalPit,
+  type PitContext,
+} from "./strategy";
 import type { Component, Confidence, LapAnalysis, RaceData, RaceLap } from "./types";
-
-/* Seeded RNG (mulberry32) + Box-Muller normal — all randomness seeded,
-   project rule 3. */
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function normalPair(rand: () => number): [number, number] {
-  const u = Math.max(rand(), 1e-12);
-  const v = rand();
-  const r = Math.sqrt(-2 * Math.log(u));
-  return [r * Math.cos(2 * Math.PI * v), r * Math.sin(2 * Math.PI * v)];
-}
 
 interface Term {
   key: string; // feature-group key for decomposition
@@ -223,6 +211,30 @@ export class SimEngine {
           };
         })
         .filter((c) => Math.abs(c.value_s) > 1e-4 || c.pm_s > 1e-4);
+    } else if (decomposable) {
+      // First clean lap: decompose absolute pace vs nominal baseline car pace
+      refLap = lap.lap;
+      deltaVsRef = lap.lap_time_s - this.mu[0]; // delta vs pure base pace
+      residual = residNow;
+      components = [...groups.entries()]
+        .filter(([key]) => key !== "base")
+        .map(([key, idx]) => {
+          const dvalue = idx.reduce((a, i) => a + this.mu[i] * x[i], 0);
+          let variance = 0;
+          for (const i of idx)
+            for (const j of idx)
+              variance += x[i] * this.cov[i][j] * x[j];
+          const pm = Math.sqrt(Math.max(variance, 0));
+          return {
+            key,
+            label: this.groupLabel(key),
+            value_s: dvalue,
+            pm_s: pm,
+            confidence: this.confidence(dvalue, pm),
+            priorDominated: this.priorDominatedGroup(idx),
+          };
+        })
+        .filter((c) => Math.abs(c.value_s) > 1e-4 || c.pm_s > 1e-4);
     }
 
     // maintain the reference AFTER decomposing (a new best compares to the old)
@@ -243,12 +255,38 @@ export class SimEngine {
         pit_in: false,
         pit_out: false,
         vsc: false,
+        sc: false,
         overtake: false,
         defended: false,
       };
       const xn = this.features(nx);
       nextPredicted = xn.reduce((a, v, i) => a + v * this.mu[i], 0);
       nextPredictedPm = Math.sqrt(this.predictVar(xn) + SIGMA_NOISE_S * SIGMA_NOISE_S);
+    }
+
+    // Honest-evidence gate (spec: never dress priors up as estimates).
+    // INSUFFICIENT when (a) too few clean laps, or (b) the current compound's
+    // deg coefficient is still LOW-confidence AND its posterior sd has not
+    // tightened to half the prior — collinear/degenerate data trips (b) even
+    // when the lap count is enough (e.g. perfectly flat lap times).
+    const iDeg = this.degIndex(lap.compound);
+    const degMu = this.mu[iDeg];
+    const degPm = Math.sqrt(Math.max(this.cov[iDeg][iDeg], 0));
+    const priorSd = Math.sqrt(this.priorVar[iDeg]);
+    let evidence: LapAnalysis["evidence"] = { state: "SUFFICIENT", reason: null };
+    if (this.nClean < MIN_CLEAN_LAPS_FOR_EVIDENCE) {
+      evidence = {
+        state: "INSUFFICIENT",
+        reason: `only ${this.nClean} clean lap${this.nClean === 1 ? "" : "s"} fitted so far (need ${MIN_CLEAN_LAPS_FOR_EVIDENCE}) — estimates below are still priors`,
+      };
+    } else if (
+      degPm >= CONF_MED_RATIO * Math.abs(degMu) &&
+      degPm >= 0.5 * priorSd
+    ) {
+      evidence = {
+        state: "INSUFFICIENT",
+        reason: `the ${lap.compound} degradation estimate is still ${degPm.toFixed(3)} ± ${degPm.toFixed(3)} s/lap-wide — the data does not yet identify it (check for collinear channels, e.g. fuel)`,
+      };
     }
 
     return {
@@ -267,6 +305,7 @@ export class SimEngine {
       tyre: this.tyreState(lap),
       strategy: this.strategy(lap),
       nCleanFitted: this.nClean,
+      evidence,
     };
   }
 
@@ -313,17 +352,6 @@ export class SimEngine {
     const iOff = this.terms.findIndex((t) => t.key === `off:${target}`);
     const curOffIdx = this.terms.findIndex((t) => t.key === `off:${lap.compound}`);
 
-    const costForPit = (p: number, degCur: number, degTar: number, dOffset: number): number => {
-      // laps lap.lap+1..p on current tyre, then p+1..total on target tyre
-      let cost = 0;
-      for (let j = 1; j <= p - lap.lap; j++) cost += degCur * (lap.tyre_age + j);
-      if (p < total) {
-        cost += pitLoss + dOffset * (total - p);
-        for (let j = 1; j <= total - p; j++) cost += degTar * j;
-      }
-      return cost;
-    };
-
     const offTar = iOff >= 0 ? this.mu[iOff] : 0;
     const offCur = curOffIdx >= 0 ? this.mu[curOffIdx] : 0;
     const dOffset = offTar - offCur;
@@ -332,53 +360,37 @@ export class SimEngine {
     // regs: two dry compounds per race)
     const pMin = lap.lap + 1;
     const pMax = this.hasPitted ? total : total - 1;
-    let bestP = pMin;
-    let bestCost = Infinity;
-    const costs: number[] = [];
-    for (let p = pMin; p <= pMax; p++) {
-      const c = costForPit(p, this.mu[iCur], this.mu[iTar], dOffset);
-      costs.push(c);
-      if (c < bestCost) {
-        bestCost = c;
-        bestP = p;
-      }
-    }
-    // window: candidate pit laps within 1.0 s of optimal
-    let lo = bestP;
-    let hi = bestP;
-    costs.forEach((c, k) => {
-      const p = pMin + k;
-      if (c <= bestCost + 1.0) {
-        lo = Math.min(lo, p);
-        hi = Math.max(hi, p);
-      }
-    });
+    const ctx: PitContext = {
+      currentLap: lap.lap,
+      tyreAge: lap.tyre_age,
+      totalLaps: total,
+      hasPitted: this.hasPitted,
+      pitLoss,
+      dOffset,
+    };
 
-    // P(optimal pit within the next 3 laps), seeded posterior draws
-    const rand = mulberry32(STRATEGY_SEED + lap.lap);
-    let hits = 0;
-    for (let d = 0; d < STRATEGY_DRAWS; d += 2) {
-      const [z1, z2] = normalPair(rand);
-      for (const z of [z1, z2]) {
-        const degCur = this.mu[iCur] + z * Math.sqrt(Math.max(this.cov[iCur][iCur], 0));
-        const [z3] = normalPair(rand);
-        const degTar =
-          iTar === iCur ? degCur : this.mu[iTar] + z3 * Math.sqrt(Math.max(this.cov[iTar][iTar], 0));
-        let dBest = pMin;
-        let dCost = Infinity;
-        for (let p = pMin; p <= pMax; p++) {
-          const c = costForPit(p, degCur, degTar, dOffset);
-          if (c < dCost) {
-            dCost = c;
-            dBest = p;
-          }
-        }
-        // staying to the flag (p = total, only legal once pitted) is not a stop
-        const isStay = this.hasPitted && dBest === total;
-        if (!isStay && dBest <= lap.lap + 3) hits++;
-      }
-    }
-    const pitNowProb = hits / (Math.ceil(STRATEGY_DRAWS / 2) * 2);
+    const { bestP, lo, hi } = findOptimalPit(
+      pMin,
+      pMax,
+      ctx,
+      this.mu[iCur],
+      this.mu[iTar],
+    );
+
+    // P(optimal pit within the next 3 laps), seeded posterior draws.
+    // Same-tyre target: the draw must be perfectly correlated, as in the
+    // original engine code.
+    const pitNowProb = estimatePitNowProb(
+      pMin,
+      pMax,
+      ctx,
+      this.mu[iCur],
+      Math.sqrt(Math.max(this.cov[iCur][iCur], 0)),
+      this.mu[iTar],
+      iTar === iCur ? null : Math.sqrt(Math.max(this.cov[iTar][iTar], 0)),
+      STRATEGY_SEED + lap.lap,
+      STRATEGY_DRAWS,
+    );
 
     const stayOut = bestP === total && this.hasPitted;
     return {

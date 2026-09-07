@@ -35,7 +35,9 @@ export function TyrePanel({ lap, analysis }: { lap: RaceLap; analysis: LapAnalys
       </div>
       <div className="rec-lines" style={{ marginTop: 12 }}>
         <div className="rec-line">
-          <span className="k">Fitted deg rate</span>
+          <span className="k">
+            {analysis.evidence.state === "INSUFFICIENT" ? "Deg rate (preliminary)" : "Fitted deg rate"}
+          </span>
           <span className="v">
             {t.degRate.toFixed(3)} ± {t.degRatePm.toFixed(3)} s/lap
           </span>
@@ -44,10 +46,16 @@ export function TyrePanel({ lap, analysis }: { lap: RaceLap; analysis: LapAnalys
           <span className="k">Projected loss, +5 laps</span>
           <span className="v">+{t.projLossIn5.toFixed(2)} s</span>
         </div>
+        {analysis.evidence.state === "INSUFFICIENT" && (
+          <div style={{ marginTop: 6, fontSize: 11.5, color: "var(--warn, #f59e0b)" }}>
+            ⚠ Preliminary: {analysis.evidence.reason}
+          </div>
+        )}
       </div>
       <p className="note" style={{ marginTop: 10 }}>
-        Wear % is age vs measured average stint lengths (RESEARCH §1) — a yardstick, not a
-        carcass measurement; nothing public measures actual wear.
+        {analysis.evidence.state === "INSUFFICIENT"
+          ? `Preliminary posterior — ${analysis.evidence.reason}. The estimate updates online as laps arrive.`
+          : "Wear % is age vs measured average stint lengths (RESEARCH §1) — a yardstick, not a carcass measurement; nothing public measures actual wear."}
       </p>
     </section>
   );

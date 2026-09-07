@@ -43,7 +43,7 @@ export function SimDecomp({
   analysis: LapAnalysis;
   showTruth: boolean;
 }) {
-  if (analysis.refLap == null || analysis.deltaVsRef == null) {
+  if (analysis.components.length === 0 && (analysis.refLap == null || analysis.deltaVsRef == null)) {
     return (
       <p className="note">
         Lap {analysis.lap}: {analysis.excludeReason ?? "first clean lap — this is the reference; decomposition starts on the next lap."}
@@ -68,11 +68,17 @@ export function SimDecomp({
     },
   ].sort((a, b) => Math.abs(b.value_s) - Math.abs(a.value_s));
 
-  const truth = showTruth ? truthDeltas(race, analysis.lap, analysis.refLap) : null;
+  const isComparative = analysis.refLap != null && analysis.refLap !== analysis.lap;
+  const truth = showTruth && isComparative ? truthDeltas(race, analysis.lap, analysis.refLap) : null;
   const extent = Math.max(...rows.map((r) => Math.abs(r.value_s) + r.pm_s), 0.15);
 
   return (
     <>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+        {isComparative
+          ? `Attribution of Δ vs best clean lap (L${analysis.refLap}): ${analysis.deltaVsRef != null ? (analysis.deltaVsRef >= 0 ? "+" : "−") + Math.abs(analysis.deltaVsRef).toFixed(2) + " s" : ""}`
+          : `Lap ${analysis.lap} (${analysis.lapTime.toFixed(2)} s) factor breakdown vs nominal car baseline`}
+      </div>
       {rows.map((r) => {
         const frac = (v: number) => 50 + (v / extent) * 48; // % position, zero at centre
         const left = Math.min(frac(0), frac(r.value_s));

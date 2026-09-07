@@ -102,9 +102,18 @@ def validation() -> dict:
 @app.get("/api/replay/{session_id}")
 def replay(session_id: str, lap: int | None = None) -> dict:
     data = _load("replay")
+    frames = data.get("frames")
+    if not isinstance(frames, list) or any(
+        not isinstance(f, dict) or not isinstance(f.get("lap"), (int, float))
+        for f in frames
+    ):
+        raise HTTPException(
+            500,
+            "replay artifact malformed: 'frames' must be a list of objects with numeric 'lap'",
+        )
     if lap is not None:
-        frames = [f for f in data["frames"] if f["lap"] <= lap]
-        if not frames:
+        kept = [f for f in frames if f["lap"] <= lap]
+        if not kept:
             raise HTTPException(404, f"no posterior before lap {lap}")
-        return {**data, "frames": frames}
+        return {**data, "frames": kept}
     return data

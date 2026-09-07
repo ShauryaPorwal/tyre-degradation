@@ -97,4 +97,7 @@ export interface LapAnalysis {
     reason: string;
   };
   nCleanFitted: number;
+  /** Honest-evidence gate: INSUFFICIENT means the deg estimate is still
+      priors dressed up — the UI must say so, never show the bare number. */
+  evidence: { state: "SUFFICIENT" | "INSUFFICIENT"; reason: string | null };
 }

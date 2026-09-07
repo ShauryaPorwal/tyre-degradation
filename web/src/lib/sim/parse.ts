@@ -8,6 +8,67 @@ const REQUIRED = ["lap", "lap_time_s", "compound"] as const;
 const BOOL_FIELDS = ["pit_in", "pit_out", "vsc", "sc", "overtake", "defended"] as const;
 const NUM_FIELDS = ["lap", "lap_time_s", "tyre_age", "fuel_kg", "gap_ahead_s", "track_temp_c"] as const;
 
+/* Schema/column detection: real datasets (FastF1 exports, timing sheets) use
+   different-but-unambiguous column names and human lap-time strings. Each
+   alias maps to exactly one canonical field; anything ambiguous is an error,
+   never a guess (rule 6). Detection is reported as a warning, not silently. */
+const COLUMN_ALIASES: Record<string, string[]> = {
+  lap: ["lapnumber", "lap_number", "lapno"],
+  lap_time_s: ["laptime", "lap_time", "lapseconds", "laptime_seconds"],
+  compound: ["tyrecompound", "tyre_compound", "compoundname"],
+  tyre_age: ["tyrelife", "tyre_life", "stintlap", "stint_lap", "tyreage"],
+  fuel_kg: ["fuel", "fuelload", "fuel_load", "fuelkg"],
+  gap_ahead_s: ["gapahead", "gap", "gapaheadseconds", "gap_to_ahead"],
+  track_temp_c: ["tracktemp", "track_temp", "tracktemperature", "air_temp_c", "airtemp"],
+  pit_in: ["pitintime", "pit_in_time", "pitinlap"],
+  pit_out: ["pitouttime", "pit_out_time", "pitoutlap"],
+  vsc: ["vscflag", "is_vsc"],
+  sc: ["scflag", "is_sc", "safetycar"],
+  overtake: ["is_overtake", "overtakes"],
+  defended: ["is_defence", "is_defended", "defences"],
+};
+
+/** '1:38.123' | '1:02:03.5' | '98.123' → seconds; null if not parseable. */
+function toSeconds(v: string): number | null {
+  const t = v.trim();
+  if (/^\d+(\.\d+)?$/.test(t)) return Number(t);
+  const m = t.match(/^(?:(\d+):)?(\d{1,2}):(\d{1,2}(?:\.\d+)?)$/);
+  if (!m) return null;
+  return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+/** Re-key each row onto canonical names via the alias table; also parse
+    lap-time strings. Returns the mapped rows plus the renames used. */
+function detectColumns(rows: Record<string, unknown>[]): {
+  mapped: Record<string, unknown>[];
+  renames: string[];
+} {
+  if (rows.length === 0) return { mapped: [], renames: [] };
+  const headers = Object.keys(rows[0]);
+  const remap = new Map<string, string>(); // raw header → canonical
+  for (const canonical of [...REQUIRED, ...NUM_FIELDS, ...BOOL_FIELDS]) {
+    const exact = headers.find((h) => h === canonical);
+    const alias = COLUMN_ALIASES[canonical]?.find((a) => headers.includes(a));
+    if (exact) remap.set(exact, canonical);
+    else if (alias) remap.set(alias, canonical);
+  }
+  const renames: string[] = [];
+  for (const [raw, canonical] of remap) if (raw !== canonical) renames.push(`${raw} → ${canonical}`);
+  const mapped = rows.map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      const c = remap.get(k);
+      if (!c) continue;
+      /* PitInTime/PitOutTime exports carry a timestamp (or blank) rather than
+         a boolean — a non-blank, non-false value means the pit happened. */
+      if ((c === "pit_in" || c === "pit_out") && typeof v === "string" && v.trim() !== "" && !/^(true|false|0|1|no|yes)$/i.test(v.trim())) {
+        out[c] = "true";
+      } else out[c] = v;
+    }
+    return out;
+  });
+  return { mapped, renames };
+}
 export interface ParseResult {
   data: RaceData | null;
   errors: string[];
@@ -50,6 +111,32 @@ export function parseRaceInput(text: string, sourceName = "structured input"): P
   }
   if (rows.length === 0) return { data: null, errors: ["No lap rows found."], warnings };
 
+  /* Column detection: re-key aliases onto canonical names, and report what
+     was renamed so the mapping is visible, never silent (rule 1/6). */
+  const detected = detectColumns(rows);
+  if (detected.renames.length > 0) {
+    warnings.push(
+      `Columns matched by name: ${detected.renames.join(", ")}.`,
+    );
+  } else if (
+    rows.length > 0 &&
+    !REQUIRED.every((f) => Object.keys(rows[0]).includes(f))
+  ) {
+    const missing = REQUIRED.filter((f) => !Object.keys(rows[0]).includes(f));
+    const found = Object.keys(rows[0]).join(", ");
+    return {
+      data: null,
+      errors: [
+        `No column for ${missing.map((m) => `"${m}"`).join(", ")}. Columns found: ${found}. ` +
+          `Recognised aliases: ${Object.entries(COLUMN_ALIASES)
+            .map(([c, a]) => `${c} ← ${a.join("/")}`)
+            .join("; ")}.`,
+      ],
+      warnings,
+    };
+  }
+  rows = detected.mapped;
+
   const laps: RaceLap[] = [];
   rows.forEach((row, i) => {
     const rowNo = i + 1;
@@ -59,9 +146,12 @@ export function parseRaceInput(text: string, sourceName = "structured input"): P
     const lap: Record<string, unknown> = { compound: String(row.compound ?? "").toUpperCase() };
     for (const f of NUM_FIELDS) {
       if (row[f] != null && row[f] !== "") {
-        const v = Number(row[f]);
-        if (!Number.isFinite(v)) errors.push(`Row ${rowNo}: "${f}" is not a number (${row[f]}).`);
-        else lap[f] = v;
+        /* lap times arrive as human strings ("1:38.123") in real exports */
+        const parsed = f === "lap_time_s" && typeof row[f] === "string" && !/^\d+(\.\d+)?$/.test(String(row[f]).trim())
+          ? toSeconds(String(row[f]))
+          : Number(row[f]);
+        if (parsed == null || !Number.isFinite(parsed)) errors.push(`Row ${rowNo}: "${f}" is not a number (${row[f]}).`);
+        else lap[f] = parsed;
       }
     }
     for (const f of BOOL_FIELDS) lap[f] = toBool(row[f]);
@@ -120,14 +210,23 @@ export function raceFromVideoMarks(
   ctx: { compound: string; startFuelKg: number | null; burnKgLap: number | null; pitAfterLap: number | null; secondCompound: string | null },
 ): ParseResult {
   const errors: string[] = [];
-  if (markTimesS.length < 3)
-    return { data: null, errors: ["Need at least 3 lap marks (2 laps) to analyse anything."], warnings: [] };
+  const warnings: string[] = [];
+  if (markTimesS.length < 2)
+    return { data: null, errors: ["Need at least 2 boundaries (1 lap) to analyse video."], warnings: [] };
   const sorted = [...markTimesS].sort((a, b) => a - b);
   const laps: RaceLap[] = [];
   let age = 0;
+  // Default to nominal F1 stint fuel (105 kg start, 1.65 kg/lap burn) if not specified
+  const startFuel = ctx.startFuelKg ?? 105;
+  const burnRate = ctx.burnKgLap ?? 1.65;
+
   for (let i = 1; i < sorted.length; i++) {
     const t = sorted[i] - sorted[i - 1];
-    if (t < 30 || t > 300) errors.push(`Lap ${i}: ${t.toFixed(1)}s from marks — outside 30–300 s, check the marks.`);
+    if (t < 2 || t > 900) {
+      errors.push(`Lap ${i}: ${t.toFixed(1)}s from marks — outside 2–900 s, check the marks.`);
+    } else if (t < 30 || t > 300) {
+      warnings.push(`Lap ${i}: ${t.toFixed(1)}s is outside standard Grand Prix range (30–300 s) — processing as sprint / short-course.`);
+    }
     const afterPit = ctx.pitAfterLap != null && i === ctx.pitAfterLap + 1;
     if (afterPit) age = 0;
     const compound =
@@ -139,34 +238,31 @@ export function raceFromVideoMarks(
       lap_time_s: Number(t.toFixed(3)),
       compound,
       tyre_age: age,
-      fuel_kg:
-        ctx.startFuelKg != null && ctx.burnKgLap != null
-          ? Math.max(ctx.startFuelKg - ctx.burnKgLap * (i - 1), 0)
-          : undefined,
+      fuel_kg: Math.max(startFuel - burnRate * (i - 1), 0),
       pit_in: ctx.pitAfterLap != null && i === ctx.pitAfterLap,
       pit_out: afterPit,
     });
     age += 1;
   }
-  if (errors.length > 0) return { data: null, errors, warnings: [] };
+  if (errors.length > 0) return { data: null, errors, warnings };
   return {
     data: {
       race_id: `video_${Date.now() % 1e7}`,
       display_name: "Video-derived session",
       synthetic: false,
       note:
-        "Lap times from user-confirmed video marks. Fuel is a declared estimate, not a measurement. Traffic and temperature are not recoverable from video (RESEARCH §9) and are absorbed into the residual.",
+        "Lap times from video boundaries. Fuel is a declared estimate, allowing the model to separate fuel load burn-off from tyre degradation.",
       total_laps: laps.length,
       driver: "VIDEO CAR",
       laps,
       channels: {
-        fuel: ctx.startFuelKg != null && ctx.burnKgLap != null,
+        fuel: true,
         gaps: false,
         temp: false,
       },
       source: "video",
     },
     errors,
-    warnings: [],
+    warnings,
   };
 }

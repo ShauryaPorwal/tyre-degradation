@@ -17,6 +17,7 @@ import { SimIngest } from "@/components/sim/SimIngest";
 import { SimPaceChart } from "@/components/sim/SimPaceChart";
 import { SimDecomp } from "@/components/sim/SimDecomp";
 import { ModelStatePanel, StrategyPanel, TyrePanel } from "@/components/sim/SimSidePanels";
+import { SimLapLedger } from "@/components/sim/SimLapLedger";
 
 const TICK_MS = 700;
 
@@ -28,24 +29,26 @@ function headline(a: LapAnalysis): string {
     }
     return `Lap ${a.lap} excluded from the fit: ${a.excludeReason}.`;
   }
-  if (a.refLap == null || a.deltaVsRef == null) {
-    return `Lap ${a.lap} is the first clean lap — it becomes the reference.`;
-  }
-  if (a.deltaVsRef <= 0.005) {
-    return `Lap ${a.lap} is a new best — it becomes the reference for the decomposition.`;
-  }
+
   const parts = [...a.components]
-    .filter((c) => Math.abs(c.value_s) >= 0.02)
+    .filter((c) => Math.abs(c.value_s) >= 0.01)
     .sort((x, y) => Math.abs(y.value_s) - Math.abs(x.value_s))
     .slice(0, 4)
     .map(
       (c) =>
-        `${c.value_s >= 0 ? "" : "−"}${Math.abs(c.value_s).toFixed(2)} s ${c.label.toLowerCase()}${c.priorDominated ? " (prior)" : ""}`,
+        `${c.value_s >= 0 ? "+" : "−"}${Math.abs(c.value_s).toFixed(2)} s ${c.label.toLowerCase()}${c.priorDominated ? " (prior)" : ""}`,
     );
-  if (Math.abs(a.residual_s) >= 0.02) {
-    parts.push(`${a.residual_s >= 0 ? "" : "−"}${Math.abs(a.residual_s).toFixed(2)} s driver inputs / unexplained`);
+  if (Math.abs(a.residual_s) >= 0.01) {
+    parts.push(`${a.residual_s >= 0 ? "+" : "−"}${Math.abs(a.residual_s).toFixed(2)} s driver inputs / unexplained`);
   }
-  return `Lap ${a.lap} was ${a.deltaVsRef.toFixed(2)} s slower than lap ${a.refLap}: ${parts.join(", ")}.`;
+
+  const prelim = a.evidence.state === "INSUFFICIENT" ? ` (preliminary · ${a.nCleanFitted} clean laps)` : "";
+
+  if (a.refLap == null || a.refLap === a.lap) {
+    return `Lap ${a.lap} (${a.lapTime.toFixed(2)} s) baseline factor breakdown: ${parts.join(", ")}${prelim}.`;
+  }
+
+  return `Lap ${a.lap} was ${a.deltaVsRef != null && a.deltaVsRef >= 0 ? "+" : "−"}${Math.abs(a.deltaVsRef ?? 0).toFixed(2)} s vs lap ${a.refLap}: ${parts.join(", ")}${prelim}.`;
 }
 
 export function SimScreen() {
@@ -92,9 +95,10 @@ export function SimScreen() {
         <SimIngest
           onLoad={(r) => {
             setRace(r);
-            setUpTo(0);
-            setSelected(null);
-            setPlaying(true);
+            const targetIdx = Math.max(r.laps.length - 1, 0);
+            setUpTo(targetIdx);
+            setSelected(r.laps[targetIdx]?.lap ?? 1);
+            setPlaying(false);
           }}
         />
       </>
@@ -239,6 +243,14 @@ export function SimScreen() {
           <ModelStatePanel analysis={sel} />
         </div>
       </div>
+
+      <SimLapLedger
+        race={race}
+        analyses={analyses}
+        upTo={upTo}
+        selected={sel.lap}
+        onSelect={(lap) => setSelected(lap)}
+      />
 
       {race.note && (
         <p className="note" style={{ marginTop: 8 }}>

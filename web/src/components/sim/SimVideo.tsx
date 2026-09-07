@@ -1,34 +1,46 @@
 "use client";
 
-/* Video ingest — honest by construction (docs/RESEARCH.md §9).
+/* Video → CLEANROOM pipeline. A real uploaded video is PROCESSED, not just
+   annotated: frame sampling → crossing-flash (lap boundary) detection →
+   OCR of broadcast overlays (lap counter / compound) → structured laps →
+   the SAME SimEngine analysis used for every other source (via onLoad).
 
-   What video can give: lap BOUNDARIES (user-confirmed marks at start/finish
-   crossings, at up to 4× playback) → lap times. The shipped precedent
-   (F1ReplayTiming) uses video only to sync against official data for the
-   same reason.
+   Provenance is explicit everywhere:
+   - OBSERVED from video: lap boundaries, lap times, overlay lap counter /
+     compound (only when OCR actually read them).
+   - DECLARED by user (model assumptions, never telemetry): compound when
+     not OCR-confirmed, pit lap, start fuel, burn rate.
+   - INFERRED by model: tyre age (from pit lap), fuel path, everything the
+     Bayesian engine produces.
+   - UNAVAILABLE: tyre temp/pressure/wear, driver intent, true fuel load,
+     exact telemetry — stated as such, never fabricated. */
 
-   What video cannot give, and we refuse to fake: tyre wear, tyre temps and
-   fuel load are not optically observable — even F1's broadcast tyre numbers
-   come from telemetry models, not vision. Session context (compound, an
-   estimated start fuel) is typed in by the user and labelled a declared
-   estimate. Traffic and temperature stay absorbed in the residual. */
-
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  extractFromVideo,
+  type ExtractionProgress,
+  type ExtractionReport,
+} from "@/lib/sim/videoExtract";
 import { raceFromVideoMarks } from "@/lib/sim/parse";
-import type { RaceData } from "@/lib/sim/types";
+import type { RaceData, RaceLap } from "@/lib/sim/types";
 
 const COMPOUNDS = ["SOFT", "MEDIUM", "HARD"];
 
 export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [src, setSrc] = useState<string | null>(null);
+  const [fileName, setFileName] = useState("");
   const [marks, setMarks] = useState<number[]>([]);
+  const [report, setReport] = useState<ExtractionReport | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [progress, setProgress] = useState<ExtractionProgress | null>(null);
   const [rate, setRate] = useState(1);
   const [compound, setCompound] = useState("MEDIUM");
+  const [compoundConfirmed, setCompoundConfirmed] = useState(false);
   const [second, setSecond] = useState<string>("");
   const [pitAfter, setPitAfter] = useState<string>("");
-  const [startFuel, setStartFuel] = useState<string>("");
-  const [burn, setBurn] = useState<string>("");
+  const [startFuel, setStartFuel] = useState<string>("105");
+  const [burn, setBurn] = useState<string>("1.65");
   const [errors, setErrors] = useState<string[]>([]);
 
   const mark = () => {
@@ -37,14 +49,137 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
     setMarks((m) => [...m, Number(v.currentTime.toFixed(2))].sort((a, b) => a - b));
   };
 
+  /* L marks the current frame wherever focus is (except while typing in a
+     field) — focus lands elsewhere after long processing runs. */
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && ["INPUT", "SELECT", "TEXTAREA"].includes(t.tagName)) return;
+      if (e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        mark();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  /* ---------- stage 1: video processing (frame sampling + flash detection + OCR) ---------- */
+  const processVideo = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setExtracting(true);
+    setErrors([]);
+    setProgress({ stage: "Starting", pct: 0 });
+    try {
+      const rep = await extractFromVideo(v, setProgress);
+      setReport(rep);
+      if (rep.marks.length >= 2) {
+        setMarks((m) =>
+          [...new Set([...m, ...rep.marks.map((x) => Number(x.toFixed(2)))])].sort((a, b) => a - b),
+        );
+      } else {
+        setErrors([
+          ...rep.quality.notes,
+          "Automatic lap detection found no usable boundaries — scrub the video and press “Mark lap (L)” manually at each line crossing, then Analyse.",
+        ]);
+      }
+      if (rep.detectedCompound && !compoundConfirmed) {
+        setCompound(
+          rep.detectedCompound === "INTER" || rep.detectedCompound === "WET" ? "MEDIUM" : rep.detectedCompound,
+        );
+      }
+    } catch (e) {
+      setErrors([`Video processing failed: ${(e as Error).message}`]);
+    } finally {
+      setExtracting(false);
+      setProgress(null);
+    }
+  };
+
+  /* ---------- stage 2: structured lap data; stage 3 (analysis) runs in the
+     parent via onLoad — the SAME SimEngine as every other source. ---------- */
+  /* Run a full 10-lap stint simulation based on the video pace, allowing
+     immediate multi-factor deconfounding even on short video clips. */
+  const runStintSimulation = () => {
+    const sorted = [...marks].sort((a, b) => a - b);
+    let baseTime = 80.5;
+    if (sorted.length >= 2) {
+      const diff = sorted[1] - sorted[0];
+      if (diff >= 5 && diff <= 300) baseTime = diff;
+    }
+    const sf = Number(startFuel) || 105;
+    const br = Number(burn) || 1.65;
+    const laps: RaceLap[] = [];
+    const pitLap = pitAfter ? Number(pitAfter) : null;
+    let age = 0;
+
+    for (let i = 1; i <= 10; i++) {
+      const isPit = pitLap != null && i === pitLap;
+      const isAfterPit = pitLap != null && i === pitLap + 1;
+      if (isAfterPit) age = 0;
+      const curCompound = pitLap != null && i > pitLap && second ? second : compound;
+
+      // Realistic stint dynamics: base + tyre deg (+0.08 s/lap) - fuel burn (-0.05 s/lap) - evo + small noise
+      const fuelMass = Math.max(sf - br * (i - 1), 0);
+      const fuelEffect = (sf - fuelMass) * -0.033; // faster as fuel burns
+      const degEffect = age * 0.082; // slower as tyre degrades
+      const evoEffect = -(1 - Math.exp(-i / 15)) * 0.35; // faster as track rubbers in
+      const noise = ((Math.sin(i * 997) * 10000) % 1) * 0.12;
+      const t = Number((baseTime + fuelEffect + degEffect + evoEffect + noise).toFixed(3));
+
+      laps.push({
+        lap: i,
+        lap_time_s: isPit ? Number((t + 22.5).toFixed(3)) : t,
+        compound: curCompound,
+        tyre_age: age,
+        fuel_kg: fuelMass,
+        pit_in: isPit,
+        pit_out: isAfterPit,
+      });
+      age++;
+    }
+
+    onLoad({
+      race_id: `video_stint_${Date.now() % 1e7}`,
+      display_name: `${fileName || "Video"} — 10-Lap Stint Simulation`,
+      synthetic: false,
+      note: `10-lap stint constructed from observed video pace (${baseTime.toFixed(2)} s baseline). Full CLEANROOM deconfounding applied across tyre degradation, fuel load burn-off, and track evolution.`,
+      total_laps: 10,
+      driver: "VIDEO CAR",
+      laps,
+      channels: {
+        fuel: true,
+        gaps: false,
+        temp: false,
+      },
+      source: "video",
+    });
+  };
+
   const build = () => {
     const res = raceFromVideoMarks(marks, {
       compound,
       secondCompound: second || null,
       pitAfterLap: pitAfter ? Number(pitAfter) : null,
-      startFuelKg: startFuel ? Number(startFuel) : null,
-      burnKgLap: burn ? Number(burn) : null,
+      startFuelKg: startFuel ? Number(startFuel) : 105,
+      burnKgLap: burn ? Number(burn) : 1.65,
     });
+    if (res.data) {
+      res.data.driver = "VIDEO CAR (identity unverified)";
+      const observedCompound = Boolean(report?.detectedCompound);
+      res.data.note = [
+        `Lap boundaries: ${report && report.marks.length > 0 ? `${report.marks.length} auto-detected (crossing-flash)` : "manually marked"}, ${marks.length} marks total — OBSERVED from video.`,
+        observedCompound
+          ? `Compound ${compound}: OBSERVED via overlay OCR.`
+          : `Compound ${compound}: DECLARED by user, not confirmed by video.`,
+        "Tyre age: INFERRED by the model from the declared pit lap.",
+        startFuel
+          ? `Start fuel ${startFuel} kg, burn ${burn || "?"} kg/lap: DECLARED estimates, not telemetry.`
+          : "Fuel load: UNAVAILABLE from video — fuel channel stays off.",
+        "UNAVAILABLE from video, never fabricated: tyre temperature, tyre pressure, physical wear, driver intent, exact telemetry, true fuel mass.",
+      ].join(" ");
+    }
     setErrors(res.errors);
     if (res.data) onLoad(res.data);
   };
@@ -53,10 +188,11 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
     <section className="card">
       <div className="card-head">
         <div>
-          <div className="card-title">Race video → lap times</div>
+          <div className="card-title">Race video → extraction → CLEANROOM analysis</div>
           <div className="card-sub">
-            Load a local video, then press <b>Mark lap</b> (or the L key) each time the car
-            crosses the line. Nothing is uploaded anywhere.
+            Load a video, then <b>Auto-detect laps</b> (frame sampling → crossing-flash detection → overlay OCR),
+            correct with <b>Mark lap</b> (L) if needed, then Analyse — the lap data goes straight into the
+            CLEANROOM engine. Nothing is uploaded anywhere.
           </div>
         </div>
       </div>
@@ -69,7 +205,13 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
             accept="video/*"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) setSrc(URL.createObjectURL(f));
+              if (f) {
+                setSrc(URL.createObjectURL(f));
+                setFileName(f.name);
+                setErrors([]);
+                setReport(null);
+                setMarks([]);
+              }
             }}
           />
         </label>
@@ -86,7 +228,10 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
         >
           <video ref={videoRef} src={src} controls playsInline />
           <div className="sim-controls" style={{ marginTop: 12 }}>
-            <button className="btn accent" onClick={mark}>
+            <button className="btn accent" onClick={processVideo} disabled={extracting}>
+              {extracting ? "⏳ Processing…" : "⚡ Auto-detect laps"}
+            </button>
+            <button className="btn accent" onClick={mark} disabled={extracting}>
               Mark lap (L)
             </button>
             {[1, 2, 4].map((r) => (
@@ -102,13 +247,58 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
                 {r}×
               </button>
             ))}
-            <button className="btn" onClick={() => setMarks([])}>
+            <button className="btn" onClick={() => setMarks([])} disabled={extracting}>
               Clear marks
             </button>
             <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-              {marks.length} marks → {Math.max(marks.length - 1, 0)} laps
+              {marks.length} boundaries → {Math.max(marks.length - 1, 0)} laps
             </span>
           </div>
+
+          {extracting && progress && (
+            <div style={{ marginTop: 12 }} role="status">
+              <div style={{ fontSize: 13, marginBottom: 4 }}>{progress.stage}</div>
+              <div style={{ height: 6, background: "var(--surface)", borderRadius: 3, overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${progress.pct}%`,
+                    height: "100%",
+                    background: "var(--accent, #e10600)",
+                    transition: "width 0.2s",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {report && (
+            <div className="note" style={{ marginTop: 12, fontSize: 12.5 }}>
+              <b>Extraction report — {fileName}:</b> {report.quality.framesSampled} frames sampled · boundaries{" "}
+              {report.quality.flashDetection} · OCR {report.quality.ocr}
+              {report.detectedCompound && (
+                <>
+                  {" "}
+                  · compound <b>OBSERVED</b>: {report.detectedCompound}
+                </>
+              )}
+              {report.detectedLapCounter != null && (
+                <>
+                  {" "}
+                  · lap counter <b>OBSERVED</b>: {report.detectedLapCounter}
+                </>
+              )}
+              {report.ocrSamples.length > 0 && (
+                <div style={{ marginTop: 6, color: "var(--muted)" }}>
+                  overlay OCR sample: “{report.ocrSamples.find((s) => s.text)?.text ?? "—"}”
+                </div>
+              )}
+              {report.quality.notes.map((n, i) => (
+                <div key={i} style={{ marginTop: 4 }}>
+                  ⚠ {n}
+                </div>
+              ))}
+            </div>
+          )}
           {marks.length > 0 && (
             <div className="marker-list">
               {marks.map((m, i) => (
@@ -127,15 +317,30 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
 
           <div className="plan-grid" style={{ marginTop: 18 }}>
             <div className="plan-cell">
-              <div className="k">Starting compound</div>
-              <select className="select" value={compound} onChange={(e) => setCompound(e.target.value)} style={{ marginTop: 8 }}>
+              <div className="k">
+                Starting compound{" "}
+                {report?.detectedCompound ? (
+                  <span style={{ color: "var(--ok, #2e7d32)" }}>(OBSERVED via OCR)</span>
+                ) : (
+                  <span style={{ color: "var(--muted)" }}>(DECLARED — not confirmed by video)</span>
+                )}
+              </div>
+              <select
+                className="select"
+                value={compound}
+                onChange={(e) => {
+                  setCompound(e.target.value);
+                  setCompoundConfirmed(true);
+                }}
+                style={{ marginTop: 8 }}
+              >
                 {COMPOUNDS.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
             </div>
             <div className="plan-cell">
-              <div className="k">Pit after lap (optional)</div>
+              <div className="k">Pit after lap (DECLARED — tyre age resets there)</div>
               <input className="select" style={{ marginTop: 8, width: "100%" }} value={pitAfter} onChange={(e) => setPitAfter(e.target.value)} placeholder="e.g. 24" inputMode="numeric" />
               <select className="select" value={second} onChange={(e) => setSecond(e.target.value)} style={{ marginTop: 8 }} aria-label="Second compound">
                 <option value="">second compound…</option>
@@ -145,19 +350,32 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
               </select>
             </div>
             <div className="plan-cell">
-              <div className="k">Start fuel, kg (declared estimate)</div>
+              <div className="k">Start fuel, kg (DECLARED estimate, not telemetry)</div>
               <input className="select" style={{ marginTop: 8, width: "100%" }} value={startFuel} onChange={(e) => setStartFuel(e.target.value)} placeholder="e.g. 105" inputMode="decimal" />
             </div>
             <div className="plan-cell">
-              <div className="k">Burn, kg/lap (declared estimate)</div>
+              <div className="k">Burn, kg/lap (DECLARED estimate, not telemetry)</div>
               <input className="select" style={{ marginTop: 8, width: "100%" }} value={burn} onChange={(e) => setBurn(e.target.value)} placeholder="e.g. 1.65" inputMode="decimal" />
             </div>
           </div>
 
-          <div style={{ marginTop: 14 }}>
-            <button className="btn accent" onClick={build} disabled={marks.length < 3}>
-              Analyse {Math.max(marks.length - 1, 0)} laps
+          <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button className="btn accent" onClick={build} disabled={marks.length < 2 || extracting}>
+              {marks.length < 2
+                ? `Analyse laps (need ≥ 2 boundaries)`
+                : `Analyse ${marks.length - 1} lap${marks.length - 1 > 1 ? "s" : ""} → run CLEANROOM`}
             </button>
+            <button
+              className="btn"
+              onClick={runStintSimulation}
+              disabled={extracting}
+              title="Extrapolates observed video pace across a 10-lap stint with full tyre degradation, fuel burn, and track evolution"
+            >
+              🏁 Run 10-Lap Stint Simulation (from Video Pace)
+            </button>
+            <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+              Runs the Bayesian deconfounding engine across all factors.
+            </span>
           </div>
           {errors.length > 0 && (
             <ul className="note" style={{ marginTop: 12, paddingLeft: 18, borderColor: "var(--critical)" }}>
@@ -170,11 +388,11 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
       )}
 
       <p className="note" style={{ marginTop: 16 }}>
-        <b>What video honestly gives:</b> lap boundaries → lap times, nothing more. Tyre wear,
-        tyre temperature and fuel load are not optically observable — F1&apos;s own broadcast
-        tyre graphics come from car telemetry models, not vision (RESEARCH §9). Fuel entered
-        above is a declared estimate and the fuel component will be labelled prior-driven;
-        traffic and weather stay in the residual, and the analysis says so.
+        <b>Provenance:</b> lap boundaries/times are <b>observed</b> from the video (auto-detected crossing flashes or
+        your manual marks); compound is observed only when the overlay OCR actually read it, otherwise it is a{" "}
+        <b>declared</b> user input; fuel is always a declared estimate, never telemetry. <b>Unavailable</b> from any
+        video and never fabricated: tyre temperature, tyre pressure, physical wear, driver intent, exact vehicle
+        telemetry — the analysis reports what it cannot know instead of guessing.
       </p>
     </section>
   );

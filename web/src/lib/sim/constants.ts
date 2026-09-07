@@ -84,6 +84,12 @@ export const CONF_MED_RATIO = 0.75;
    variance by at least this factor. */
 export const PRIOR_DOMINATED_VAR_RATIO = 0.5;
 
+/* Minimum clean laps before a tyre-degradation estimate is treated as having
+   any evidence behind it: the F104 AMBER floor (docs/ADDITIONS.md F104,
+   src/cleanroom/decision/voi.py AMBER_MIN_CLEAN_LAPS). Below this the sim
+   reports INSUFFICIENT EVIDENCE instead of a number. */
+export const MIN_CLEAN_LAPS_FOR_EVIDENCE = 6;
+
 /* Posterior draws for the pit-window probability. Seeded (rule 3). */
 export const STRATEGY_DRAWS = 200;
 export const STRATEGY_SEED = 47;

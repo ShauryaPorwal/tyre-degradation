@@ -12,6 +12,18 @@ import featuresJson from "@/data/features.json";
 import exclusionsJson from "@/data/exclusions.json";
 import sessionMetaJson from "@/data/session_meta.json";
 import decisionJson from "@/data/decision.json";
+import {
+  validateDecision,
+  validateExclusions,
+  validateFeatures,
+  validateLaps,
+  validatePosterior,
+  validateReplay,
+  validateSandbagging,
+  validateSessionMeta,
+  validateValidation,
+  validateWaterfall,
+} from "@/lib/contracts";
 
 export type Compound = "SOFT" | "MEDIUM" | "HARD";
 
@@ -208,6 +220,20 @@ export interface Decision {
   knowledge_gaps: KnowledgeGap[];
 }
 
+/* Runtime contract enforcement at module load: a stale or malformed fixture
+   fails fast here with a named field, instead of surfacing as undefined in
+   the UI (mirrors the pydantic boundary in serve/api.py). */
+validatePosterior(posteriorJson);
+validateWaterfall(waterfallJson);
+validateSandbagging(sandbaggingJson);
+validateValidation(validationJson);
+validateReplay(replayJson);
+validateLaps(lapsJson);
+validateFeatures(featuresJson);
+validateExclusions(exclusionsJson);
+validateSessionMeta(sessionMetaJson);
+validateDecision(decisionJson);
+
 export const posterior = posteriorJson as unknown as Posterior;
 export const sessionMeta = sessionMetaJson as unknown as SessionMeta;
 export const decision = decisionJson as unknown as Decision;
@@ -219,14 +245,52 @@ export const laps = lapsJson as unknown as Lap[];
 export const features = featuresJson as unknown as LapFeatures[];
 export const exclusions = exclusionsJson as unknown as ExclusionRow[];
 
-/** laps ⋈ features on (driver, lap_number) — same join keys as SPEC.md 7.2. */
+/** laps ⋈ features on (driver, lap_number) — same join keys as SPEC.md 7.2.
+    Lossy joins (unmatched laps, or laps dropped by clean_flag) are counted
+    and warned once, instead of silently shrinking the analysed dataset. */
+let joinWarned = false;
+
+export interface JoinStats {
+  total: number;
+  matched: number;
+  unmatched: number;
+  unclean: number;
+}
+
 export function mergedCleanLaps(): (Lap & LapFeatures)[] {
   const key = (d: string, n: number) => `${d}|${n}`;
   const fmap = new Map(features.map((f) => [key(f.driver, f.lap_number), f]));
   const out: (Lap & LapFeatures)[] = [];
+  let unmatched = 0;
+  let unclean = 0;
   for (const lap of laps) {
     const f = fmap.get(key(lap.driver, lap.lap_number));
-    if (f && f.clean_flag) out.push({ ...lap, ...f });
+    if (!f) {
+      unmatched++;
+      continue;
+    }
+    if (!f.clean_flag) {
+      unclean++;
+      continue;
+    }
+    out.push({ ...lap, ...f });
   }
+  if ((unmatched > 0 || unclean > 0) && !joinWarned) {
+    joinWarned = true;
+    console.warn(
+      `[cleanroom] laps⋈features join is lossy: ${unmatched} lap(s) with no features row, ` +
+        `${unclean} dropped by clean_flag, ${out.length}/${laps.length} kept. ` +
+        "Check scripts/generate_fixtures.py if the dropped count is unexpected.",
+    );
+  }
+  lastJoinStats = { total: laps.length, matched: out.length, unmatched, unclean };
   return out;
+}
+
+let lastJoinStats: JoinStats = { total: 0, matched: 0, unmatched: 0, unclean: 0 };
+
+/** Counts from the most recent mergedCleanLaps() call (computes it if needed). */
+export function joinStats(): JoinStats {
+  mergedCleanLaps();
+  return lastJoinStats;
 }
