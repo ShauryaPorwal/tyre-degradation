@@ -2,6 +2,7 @@
 function producing a number used in results has a test)."""
 
 import importlib.util
+import itertools
 import sys
 from pathlib import Path
 
@@ -31,9 +32,16 @@ def test_decomposition_identity(race):
     for lap in race["laps"]:
         t = lap["truth"]
         total = (
-            t["base_s"] + t["fuel_s"] + t["deg_s"] + t["compound_s"]
-            + t["traffic_s"] + t["evo_s"] + t["temp_s"] + t["event_s"]
-            + t["noise_s"] + t["penalty_s"]
+            t["base_s"]
+            + t["fuel_s"]
+            + t["deg_s"]
+            + t["compound_s"]
+            + t["traffic_s"]
+            + t["evo_s"]
+            + t["temp_s"]
+            + t["event_s"]
+            + t["noise_s"]
+            + t["penalty_s"]
         )
         assert lap["lap_time_s"] == pytest.approx(total, abs=2e-3), lap["lap"]
 
@@ -61,7 +69,7 @@ def test_constants_within_published_bands(race):
 
 def test_fuel_monotone_and_bounded(race):
     fuels = [lap["fuel_kg"] for lap in race["laps"]]
-    assert all(a >= b for a, b in zip(fuels, fuels[1:]))
+    assert all(a >= b for a, b in itertools.pairwise(fuels))
     assert fuels[0] <= 110.0
     assert fuels[-1] >= 1.0
 
@@ -69,9 +77,7 @@ def test_fuel_monotone_and_bounded(race):
 def test_excluded_laps_flagged(race):
     """Pit and VSC laps must be flagged so the engine can refuse to fit them
     (rule 6 — fail loudly, never silently absorb contaminated laps)."""
-    flagged = [
-        lap["lap"] for lap in race["laps"] if lap["pit_in"] or lap["pit_out"] or lap["vsc"]
-    ]
+    flagged = [lap["lap"] for lap in race["laps"] if lap["pit_in"] or lap["pit_out"] or lap["vsc"]]
     assert flagged == [24, 25, 44, 45]
 
 
@@ -85,21 +91,24 @@ def test_truth_recoverable_by_bayes(race):
     equations with the priors from docs/RESEARCH.md, fuel prior 0.030 ± 0.005
     (TUM band, deliberately NOT centred on the fixture truth 0.031)."""
     clean = [
-        lap for lap in race["laps"]
+        lap
+        for lap in race["laps"]
         if not (lap["pit_in"] or lap["pit_out"] or lap["vsc"] or lap["overtake"] or lap["defended"])
     ]
     y = np.array([lap["lap_time_s"] for lap in clean])
-    X = np.column_stack([
-        np.ones(len(clean)),
-        [lap["fuel_kg"] for lap in clean],
-        [lap["tyre_age"] if lap["compound"] == "MEDIUM" else 0 for lap in clean],
-        [lap["tyre_age"] if lap["compound"] == "HARD" else 0 for lap in clean],
-        [1.0 if lap["compound"] == "HARD" else 0.0 for lap in clean],
-        [1.0 if lap["gap_ahead_s"] < 2.0 else 0.0 for lap in clean],
-        [lap["track_temp_c"] - 33.0 for lap in clean],
-        # same evolution basis the generator uses; the engine fits it too
-        [1.0 - np.exp(-lap["lap"] / 20.0) for lap in clean],
-    ])
+    X = np.column_stack(
+        [
+            np.ones(len(clean)),
+            [lap["fuel_kg"] for lap in clean],
+            [lap["tyre_age"] if lap["compound"] == "MEDIUM" else 0 for lap in clean],
+            [lap["tyre_age"] if lap["compound"] == "HARD" else 0 for lap in clean],
+            [1.0 if lap["compound"] == "HARD" else 0.0 for lap in clean],
+            [1.0 if lap["gap_ahead_s"] < 2.0 else 0.0 for lap in clean],
+            [lap["track_temp_c"] - 33.0 for lap in clean],
+            # same evolution basis the generator uses; the engine fits it too
+            [1.0 - np.exp(-lap["lap"] / 20.0) for lap in clean],
+        ]
+    )
     # Priors — same values as web/src/lib/sim/constants.ts (RESEARCH §§1-6)
     mu0 = np.array([80.0, 0.030, 0.06, 0.06, 0.4, 0.3, 0.0, 0.0])
     sd0 = np.array([10.0, 0.005, 0.10, 0.10, 0.50, 0.50, 0.10, 0.50])

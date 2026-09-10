@@ -46,13 +46,18 @@ class SessionRequest(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "mode": "fixtures" if not (config.RESULTS_DIR / "posterior.json").exists() else "results"}
+    return {
+        "status": "ok",
+        "mode": "fixtures" if not (config.RESULTS_DIR / "posterior.json").exists() else "results",
+    }
 
 
 @app.post("/api/session")
 def submit_session(req: SessionRequest) -> dict:
     # Phase 0 stub: job queue (F73) arrives in Phase 7.
-    return {"job_id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{req.year}_{req.circuit}_{req.session}"))}
+    return {
+        "job_id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{req.year}_{req.circuit}_{req.session}"))
+    }
 
 
 @app.get("/api/deg-curves/{session_id}")
@@ -104,8 +109,7 @@ def replay(session_id: str, lap: int | None = None) -> dict:
     data = _load("replay")
     frames = data.get("frames")
     if not isinstance(frames, list) or any(
-        not isinstance(f, dict) or not isinstance(f.get("lap"), (int, float))
-        for f in frames
+        not isinstance(f, dict) or not isinstance(f.get("lap"), (int, float)) for f in frames
     ):
         raise HTTPException(
             500,
@@ -117,3 +121,58 @@ def replay(session_id: str, lap: int | None = None) -> dict:
             raise HTTPException(404, f"no posterior before lap {lap}")
         return {**data, "frames": kept}
     return data
+
+
+# --------------------------------------------------------------- ML (F-ML5)
+
+from cleanroom.ml.infer import get_predictor
+
+
+class PredictRequest(BaseModel):
+    """Canonical Live-Sim state for the lap about to be predicted."""
+
+    lap: float | None = None  # optional: missing/invalid state -> deterministic fallback
+    compound: str | None = None
+    tyre_age: float | None = None
+    stint: float | None = None
+    fuel_kg: float | None = None
+    track_temp: float | None = None
+    air_temp: float | None = None
+    rainfall: bool | None = None
+    fresh_tyre: bool | None = None
+    circuit: str | None = None
+    session_type: str | None = None
+
+    model_config = {"extra": "allow"}
+
+
+@app.get("/api/ml/status")
+def ml_status() -> dict:
+    p = get_predictor()
+    meta = p.metadata or {}
+    val = meta.get("val_metrics") or {}
+    if val.get("mae") is None:
+        # metadata schema: results.<model_name>.metrics (written by the trainer)
+        res = meta.get("results") or {}
+        val = (res.get(meta.get("selected") or "") or {}).get("metrics") or {}
+    return {
+        "available": p.available,
+        "model_id": getattr(p, "model_id", None),
+        "load_error": p.load_error,
+        "trained_at": meta.get("trained_at"),
+        "val_mae_s": val.get("mae"),
+    }
+
+
+@app.post("/api/ml/predict")
+def ml_predict(req: PredictRequest) -> dict:
+    """ML lap-time prediction with deterministic fallback. Never raises."""
+    p = get_predictor()
+    r = p.predict(req.model_dump())
+    return {
+        "predicted_lap_time_s": r.predicted_lap_time_s,
+        "source": r.source,
+        "model_id": r.model_id,
+        "reason": r.reason,
+        "features_used": r.features_used,
+    }

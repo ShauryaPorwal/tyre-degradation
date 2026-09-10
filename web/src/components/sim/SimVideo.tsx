@@ -22,7 +22,25 @@ import {
   type ExtractionReport,
 } from "@/lib/sim/videoExtract";
 import { raceFromVideoMarks } from "@/lib/sim/parse";
+import { resolveRaceInput, stripProvenance } from "@/lib/sim/resolve";
+import {
+  EVO_TAU_LAPS,
+  PIT_LOSS_FALLBACK_S,
+  PRIORS,
+  SIGMA_NOISE_S,
+  STRATEGY_SEED,
+} from "@/lib/sim/constants";
 import type { RaceData, RaceLap } from "@/lib/sim/types";
+
+/* Seeded noise in [−0.5, 0.5] — mulberry32, all randomness seeded (rule 3). */
+function seededNoise(seed: number): number {
+  let a = seed >>> 0;
+  a = (a + 0x6d2b79f5) >>> 0;
+  let t = a;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296 - 0.5;
+}
 
 const COMPOUNDS = ["SOFT", "MEDIUM", "HARD"];
 
@@ -99,57 +117,73 @@ export function SimVideo({ onLoad }: { onLoad: (race: RaceData) => void }) {
 
   /* ---------- stage 2: structured lap data; stage 3 (analysis) runs in the
      parent via onLoad — the SAME SimEngine as every other source. ---------- */
-  /* Run a full 10-lap stint simulation based on the video pace, allowing
-     immediate multi-factor deconfounding even on short video clips. */
+  /* Run a full 10-lap stint preview based on the video pace, allowing
+     immediate multi-factor deconfounding even on short video clips.
+
+     Honesty note (rule 1): lap times BEYOND the observed boundaries are
+     SYNTHESISED from the engine's published priors (constants.ts →
+     docs/RESEARCH.md) — deg, fuel effect, evolution — with seeded noise.
+     The stint structure (tyre age, pit reset, fuel path) comes from the
+     canonical resolver, not duplicated logic here. The race is marked
+     synthetic:true so the UI never presents it as observation. */
   const runStintSimulation = () => {
     const sorted = [...marks].sort((a, b) => a - b);
-    let baseTime = 80.5;
+    let baseTime = 80.5; // fallback nominal pace; overridden by observed marks
     if (sorted.length >= 2) {
       const diff = sorted[1] - sorted[0];
       if (diff >= 5 && diff <= 300) baseTime = diff;
     }
-    const sf = Number(startFuel) || 105;
-    const br = Number(burn) || 1.65;
-    const laps: RaceLap[] = [];
+    const sf = startFuel ? Number(startFuel) : null;
+    const br = burn ? Number(burn) : null;
     const pitLap = pitAfter ? Number(pitAfter) : null;
-    let age = 0;
 
+    // structure-only laps; the resolver computes tyre age + fuel with provenance
+    const laps: RaceLap[] = [];
     for (let i = 1; i <= 10; i++) {
-      const isPit = pitLap != null && i === pitLap;
-      const isAfterPit = pitLap != null && i === pitLap + 1;
-      if (isAfterPit) age = 0;
-      const curCompound = pitLap != null && i > pitLap && second ? second : compound;
-
-      // Realistic stint dynamics: base + tyre deg (+0.08 s/lap) - fuel burn (-0.05 s/lap) - evo + small noise
-      const fuelMass = Math.max(sf - br * (i - 1), 0);
-      const fuelEffect = (sf - fuelMass) * -0.033; // faster as fuel burns
-      const degEffect = age * 0.082; // slower as tyre degrades
-      const evoEffect = -(1 - Math.exp(-i / 15)) * 0.35; // faster as track rubbers in
-      const noise = ((Math.sin(i * 997) * 10000) % 1) * 0.12;
-      const t = Number((baseTime + fuelEffect + degEffect + evoEffect + noise).toFixed(3));
-
       laps.push({
         lap: i,
-        lap_time_s: isPit ? Number((t + 22.5).toFixed(3)) : t,
-        compound: curCompound,
-        tyre_age: age,
-        fuel_kg: fuelMass,
-        pit_in: isPit,
-        pit_out: isAfterPit,
+        lap_time_s: 0, // filled below from cited priors
+        compound: "", // resolved from the declared compounds
+        pit_in: pitLap != null && i === pitLap,
+        pit_out: pitLap != null && i === pitLap + 1,
       });
-      age++;
     }
+    const resolved = resolveRaceInput(laps, {
+      declaredCompound: compound,
+      declaredStartFuelKg: sf,
+      declaredBurnKgLap: br,
+    });
+    resolved.laps.forEach((l, i) => {
+      if (pitLap != null && i + 1 > pitLap && second) {
+        l.compound = second;
+        l.tyre_age = i + 1 - pitLap - 1;
+      }
+      // synthetic pace from CITED priors (constants.ts), seeded noise (rule 3)
+      const fuelMass = l.fuel_kg ?? sf ?? 105;
+      const fuelEffect = -((sf ?? 105) - fuelMass) * PRIORS.fuelPerKg.mu;
+      const degEffect = (l.tyre_age ?? 0) * PRIORS.degPerLap.mu;
+      const evoEffect = -(1 - Math.exp(-l.lap / EVO_TAU_LAPS)) * Math.abs(PRIORS.evolution.mu);
+      const noise = seededNoise(STRATEGY_SEED + l.lap) * SIGMA_NOISE_S * 0.4;
+      const isPit = l.pit_in === true;
+      l.lap_time_s = Number((baseTime + fuelEffect + degEffect + evoEffect + noise + (isPit ? PIT_LOSS_FALLBACK_S : 0)).toFixed(3));
+    });
 
     onLoad({
       race_id: `video_stint_${Date.now() % 1e7}`,
-      display_name: `${fileName || "Video"} — 10-Lap Stint Simulation`,
-      synthetic: false,
-      note: `10-lap stint constructed from observed video pace (${baseTime.toFixed(2)} s baseline). Full CLEANROOM deconfounding applied across tyre degradation, fuel load burn-off, and track evolution.`,
+      display_name: `${fileName || "Video"} — 10-Lap Stint Simulation (synthetic preview)`,
+      synthetic: true,
+      note: `SYNTHETIC preview constructed from the observed video pace (${baseTime.toFixed(2)} s baseline). Lap times beyond the video are generated from the engine's cited priors (deg ${PRIORS.degPerLap.mu} s/lap, fuel ${PRIORS.fuelPerKg.mu} s/kg, seeded noise) — they are a what-if, NOT observations. Stint structure (tyre age, pit reset at lap ${pitLap ?? "—"}, fuel path) is derived by the canonical resolver.`,
       total_laps: 10,
-      driver: "VIDEO CAR",
-      laps,
+      driver: "VIDEO CAR (synthetic preview)",
+      laps: stripProvenance(resolved.laps),
+      provSummary: resolved.laps.map((l) => ({
+        lap: l.lap,
+        compound: l.prov.compound.source,
+        tyre_age: l.prov.tyre_age.source,
+        fuel_kg: l.prov.fuel_kg.source,
+      })),
       channels: {
-        fuel: true,
+        fuel: resolved.laps.some((l) => l.fuel_kg != null),
         gaps: false,
         temp: false,
       },

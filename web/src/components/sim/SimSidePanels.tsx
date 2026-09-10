@@ -8,8 +8,9 @@ import { compoundLabel } from "@/components/ui";
 import { TYPICAL_STINT_LAPS } from "@/lib/sim/constants";
 import type { LapAnalysis, RaceData, RaceLap } from "@/lib/sim/types";
 
-export function TyrePanel({ lap, analysis }: { lap: RaceLap; analysis: LapAnalysis }) {
+export function TyrePanel({ lap, analysis, race }: { lap: RaceLap; analysis: LapAnalysis; race?: RaceData | null }) {
   const t = analysis.tyre;
+  const prov = race?.provSummary?.find((p) => p.lap === lap.lap);
   const color =
     t.wearPct < 60 ? "var(--good)" : t.wearPct < 90 ? "var(--warning)" : "var(--critical)";
   const typical = TYPICAL_STINT_LAPS[lap.compound] ?? 25;
@@ -34,6 +35,15 @@ export function TyrePanel({ lap, analysis }: { lap: RaceLap; analysis: LapAnalys
         </div>
       </div>
       <div className="rec-lines" style={{ marginTop: 12 }}>
+        {prov && (
+          <div className="rec-line" title="Where each critical value on this lap came from">
+            <span className="k">Sources</span>
+            <span className="v" style={{ fontSize: 11.5 }}>
+              compound {prov.compound} · tyre age {prov.tyre_age}
+              {prov.fuel_kg !== "unavailable" ? ` · fuel ${prov.fuel_kg}` : " · fuel unavailable"}
+            </span>
+          </div>
+        )}
         <div className="rec-line">
           <span className="k">
             {analysis.evidence.state === "INSUFFICIENT" ? "Deg rate (preliminary)" : "Fitted deg rate"}

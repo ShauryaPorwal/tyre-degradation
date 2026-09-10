@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
+    "ffmpeg-static": "^5.3.0",
+    "patchright": "^1.62.3"
+  }
+}

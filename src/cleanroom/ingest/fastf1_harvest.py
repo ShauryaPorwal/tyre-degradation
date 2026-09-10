@@ -14,7 +14,7 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cleanroom import config
 
@@ -38,8 +38,10 @@ def _save_manifest(m: dict) -> None:
 def _log_failure(year: int, rnd: int, session: str, err: Exception) -> None:
     """Never let one failure kill the run (SPEC.md Phase 0 skeleton)."""
     rec = {
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "year": year, "round": rnd, "session": session,
+        "ts": datetime.now(UTC).isoformat(),
+        "year": year,
+        "round": rnd,
+        "session": session,
         "error": f"{type(err).__name__}: {err}",
     }
     with FAILURES.open("a") as f:
@@ -91,7 +93,7 @@ def main() -> None:
         log.info("harvest %s", key)
         s = harvest_session(fastf1, year, rnd, sess, with_telemetry=telem)
         if s is not None:
-            manifest["done"][key] = datetime.now(timezone.utc).isoformat()
+            manifest["done"][key] = datetime.now(UTC).isoformat()
             _save_manifest(manifest)
         time.sleep(1.0)  # be polite to the upstream API; cache absorbs re-runs
 

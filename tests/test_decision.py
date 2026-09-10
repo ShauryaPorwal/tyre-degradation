@@ -14,12 +14,12 @@ from cleanroom.decision import voi
 def test_sufficiency_thresholds_match_additions_md():
     # ADDITIONS.md F104: green >= 12 laps AND sigma < 0.02
     assert voi.sufficiency_state(12, 0.019) == "GREEN"
-    assert voi.sufficiency_state(11, 0.019) == "AMBER"   # one lap short
-    assert voi.sufficiency_state(12, 0.020) == "AMBER"   # sigma at the bound is NOT green
+    assert voi.sufficiency_state(11, 0.019) == "AMBER"  # one lap short
+    assert voi.sufficiency_state(12, 0.020) == "AMBER"  # sigma at the bound is NOT green
     # amber >= 6 laps AND sigma < 0.05
     assert voi.sufficiency_state(6, 0.049) == "AMBER"
-    assert voi.sufficiency_state(5, 0.010) == "RED"      # too few laps, however narrow
-    assert voi.sufficiency_state(40, 0.050) == "RED"     # too wide, however many laps
+    assert voi.sufficiency_state(5, 0.010) == "RED"  # too few laps, however narrow
+    assert voi.sufficiency_state(40, 0.050) == "RED"  # too wide, however many laps
     assert voi.sufficiency_state(0, 0.5) == "RED"
 
 
@@ -87,8 +87,12 @@ def test_rank_candidates_prefers_widest_posterior():
     # contract fields present and self-consistent
     top = ranked[0]
     assert set(top) == {
-        "compound", "laps", "expected_uncertainty_reduction",
-        "current_sigma", "projected_sigma", "reason",
+        "compound",
+        "laps",
+        "expected_uncertainty_reduction",
+        "current_sigma",
+        "projected_sigma",
+        "reason",
     }
     assert top["projected_sigma"] < top["current_sigma"]
     assert 0 < top["expected_uncertainty_reduction"] < 1

@@ -81,12 +81,20 @@ def test_submit_session_rejects_missing_fields():
 
 
 def test_results_dir_shadows_fixtures(tmp_path, monkeypatch):
-    marker = {"session_id": "2025_ESP_FP2", "model_version": "test",
-              "n_clean_laps": 1, "confidence_gate": "PASS", "compounds": {},
-              "track_evolution": [],
-              "confounder_decomposition": {
-                  "fuel_s_per_lap": 0.0, "track_evo_s_per_lap": 0.0,
-                  "traffic_s_per_lap": 0.0, "residual_true_deficit": 0.0}}
+    marker = {
+        "session_id": "2025_ESP_FP2",
+        "model_version": "test",
+        "n_clean_laps": 1,
+        "confidence_gate": "PASS",
+        "compounds": {},
+        "track_evolution": [],
+        "confounder_decomposition": {
+            "fuel_s_per_lap": 0.0,
+            "track_evo_s_per_lap": 0.0,
+            "traffic_s_per_lap": 0.0,
+            "residual_true_deficit": 0.0,
+        },
+    }
     (tmp_path / "posterior.json").write_text(json.dumps(marker))
     monkeypatch.setattr(config, "RESULTS_DIR", tmp_path)
 
@@ -148,6 +156,8 @@ def test_replay_last_lap_keeps_everything():
     last = fixture["frames"][-1]["lap"]
     r = client.get(f"/api/replay/s1?lap={last}")
     assert r.json()["frames"] == fixture["frames"]
+
+
 # ---------------------------------------------------------------------------
 # malformed replay artifact
 # ---------------------------------------------------------------------------

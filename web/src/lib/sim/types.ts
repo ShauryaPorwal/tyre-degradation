@@ -19,7 +19,11 @@ export interface RaceLap {
   lap: number;
   lap_time_s: number;
   compound: string;
-  tyre_age: number;
+  /* Optional on INPUT laps — the canonical resolver (resolve.ts) derives it
+     from stint history/pit events and guarantees it on every lap the engine
+     sees. The engine gates on it and reports a precise diagnostic if a lap
+     ever reaches it without a resolvable age. */
+  tyre_age?: number;
   fuel_kg?: number;
   gap_ahead_s?: number;
   track_temp_c?: number;
@@ -49,6 +53,9 @@ export interface RaceData {
     temp: boolean;
   };
   source: "fixture" | "structured" | "video";
+  /** provenance of resolved critical fields per lap (resolve.ts); present
+      when the ingest path used the canonical resolver */
+  provSummary?: { lap: number; compound: string; tyre_age: string; fuel_kg: string }[];
 }
 
 export type Confidence = "HIGH" | "MED" | "LOW";

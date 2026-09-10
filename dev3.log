@@ -1,0 +1,30 @@
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.137.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.9s
+ ○ Compiling /sim ...
+ ✓ Compiled /sim in 1839ms (715 modules)
+ GET /sim 200 in 2701ms
+ GET /sim 200 in 82ms
+ GET /sim 200 in 73ms
+ GET /sim 200 in 78ms
+ GET /sim 200 in 90ms
+ GET /sim 200 in 87ms
+ GET /sim 200 in 90ms
+ GET /sim 200 in 189ms
+ GET /sim 200 in 184ms
+ GET /sim 200 in 89ms
+ GET /sim 200 in 80ms
+ GET /sim 200 in 78ms
+ GET /sim 200 in 83ms
+ GET /sim 200 in 86ms
+ GET /sim 200 in 83ms
+ GET /sim 200 in 91ms
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.137.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 3.5s

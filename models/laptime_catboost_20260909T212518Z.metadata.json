@@ -1,0 +1,64 @@
+{
+  "model_id": "laptime_catboost_20260909T212518Z",
+  "version": 1,
+  "created_utc": "20260909T212518Z",
+  "selected": "CatBoost",
+  "selection_rule": "lowest TEST RMSE among models that beat the deterministic baseline; else baseline",
+  "sha256": "a3c95370c4e4467f7244f2b359f541aadc3052fafe158ce7040b0119134e17c1",
+  "dataset": {
+    "source": "laps.json",
+    "rows_in": 520,
+    "rows_kept": 400,
+    "dropped": {
+      "bad_or_missing_lap_time": 0,
+      "pit_or_flag_laps": 120
+    },
+    "train": 280,
+    "val": 60,
+    "test": 60,
+    "split": "grouped by session_id+driver (GroupShuffleSplit 70/15/15), seed=20260823"
+  },
+  "target": "lap_time (s), clean laps only (is_accurate, no pit, green flag)",
+  "features": [
+    "tyre_life",
+    "stint",
+    "lap_number",
+    "session_clock_s",
+    "track_temp",
+    "air_temp",
+    "speed_i1",
+    "speed_i2",
+    "speed_fl",
+    "speed_st",
+    "fresh_tyre",
+    "rainfall",
+    "compound",
+    "driver",
+    "team",
+    "circuit",
+    "session_type"
+  ],
+  "results": {
+    "deterministic_baseline": {
+      "metrics": {
+        "mae": 0.8265988095238339,
+        "rmse": 0.8627005624694919,
+        "bias": 0.8265988095238339
+      },
+      "intercept": 82.33263968448016,
+      "deg_per_lap": 0.33520511701013067,
+      "stint_effect": -0.7157261904761826,
+      "median_lap": 81.91550000000001,
+      "ref_age": 1.0
+    }
+  },
+  "library_versions": {
+    "sklearn": "1.9.0",
+    "xgboost": "3.4.1",
+    "lightgbm": "4.7.0",
+    "catboost": "1.2.10",
+    "pandas": "2.3.3",
+    "numpy": "2.5.2",
+    "joblib": "1.6.0"
+  }
+}

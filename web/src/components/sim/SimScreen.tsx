@@ -238,7 +238,7 @@ export function SimScreen() {
         </div>
 
         <div>
-          <TyrePanel lap={selLap} analysis={sel} />
+          <TyrePanel lap={selLap} analysis={sel} race={race} />
           <StrategyPanel analysis={current} race={race} />
           <ModelStatePanel analysis={sel} />
         </div>

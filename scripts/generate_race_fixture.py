@@ -21,7 +21,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from cleanroom.config import SEED, FIXTURES_DIR  # noqa: E402
+from cleanroom.config import FIXTURES_DIR, SEED
 
 rng = np.random.default_rng(SEED + 1)  # distinct stream from the FP2 fixtures
 
@@ -73,10 +73,10 @@ TRUTH = {
     "pit_outlap_s": 13.8,
 }
 
-PIT_LAP = 24        # medium stint 24 laps, inside measured medium stint norms
+PIT_LAP = 24  # medium stint 24 laps, inside measured medium stint norms
 VSC_LAPS = {44, 45}
-OVERTAKE_LAP = 18   # clears the car ahead
-DEFEND_LAP = 52     # attacked from behind
+OVERTAKE_LAP = 18  # clears the car ahead
+DEFEND_LAP = 52  # attacked from behind
 TRAFFIC_UNTIL = 18  # running in dirty air until the pass
 BACKMARKER_LAPS = {40, 41, 42}
 
@@ -119,8 +119,15 @@ def make_race() -> dict:
         noise_s = float(rng.normal(0, TRUTH["noise_sd_s"]))
 
         clean_time = (
-            TRUTH["base_pace_s"] + fuel_s + deg_s + comp_s + traffic_s
-            + evo_s + temp_s + event_s + noise_s
+            TRUTH["base_pace_s"]
+            + fuel_s
+            + deg_s
+            + comp_s
+            + traffic_s
+            + evo_s
+            + temp_s
+            + event_s
+            + noise_s
         )
 
         penalty_s = 0.0
@@ -135,34 +142,36 @@ def make_race() -> dict:
             penalty_s += clean_time * (TRUTH["vsc_mult"] - 1.0)
 
         lap_time = clean_time + penalty_s
-        laps.append({
-            "lap": lap,
-            "lap_time_s": round(lap_time, 3),
-            "compound": compound,
-            "tyre_age": tyre_age,
-            "fuel_kg": round(fuel, 2),
-            "gap_ahead_s": gap_ahead,
-            "track_temp_c": round(temp, 1),
-            "pit_in": pit_in,
-            "pit_out": pit_out,
-            "vsc": vsc,
-            "overtake": lap == OVERTAKE_LAP,
-            "defended": lap == DEFEND_LAP,
-            # ground truth, NEVER read by the engine — only by the truth
-            # overlay and the recovery test
-            "truth": {
-                "base_s": TRUTH["base_pace_s"],
-                "fuel_s": round(fuel_s, 4),
-                "deg_s": round(deg_s, 4),
-                "compound_s": round(comp_s, 4),
-                "traffic_s": round(traffic_s, 4),
-                "evo_s": round(evo_s, 4),
-                "temp_s": round(temp_s, 4),
-                "event_s": round(event_s, 4),
-                "noise_s": round(noise_s, 4),
-                "penalty_s": round(penalty_s, 4),
-            },
-        })
+        laps.append(
+            {
+                "lap": lap,
+                "lap_time_s": round(lap_time, 3),
+                "compound": compound,
+                "tyre_age": tyre_age,
+                "fuel_kg": round(fuel, 2),
+                "gap_ahead_s": gap_ahead,
+                "track_temp_c": round(temp, 1),
+                "pit_in": pit_in,
+                "pit_out": pit_out,
+                "vsc": vsc,
+                "overtake": lap == OVERTAKE_LAP,
+                "defended": lap == DEFEND_LAP,
+                # ground truth, NEVER read by the engine — only by the truth
+                # overlay and the recovery test
+                "truth": {
+                    "base_s": TRUTH["base_pace_s"],
+                    "fuel_s": round(fuel_s, 4),
+                    "deg_s": round(deg_s, 4),
+                    "compound_s": round(comp_s, 4),
+                    "traffic_s": round(traffic_s, 4),
+                    "evo_s": round(evo_s, 4),
+                    "temp_s": round(temp_s, 4),
+                    "event_s": round(event_s, 4),
+                    "noise_s": round(noise_s, 4),
+                    "penalty_s": round(penalty_s, 4),
+                },
+            }
+        )
         fuel = max(fuel - TRUTH["burn_kg_lap"], 1.0)
 
     return {

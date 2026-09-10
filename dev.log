@@ -1,0 +1,46 @@
+
+> cleanroom-web@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Sir\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Sir\Downloads\cleanroom-github\web\package-lock.json
+   * C:\Users\Sir\Downloads\cleanroom-github\package-lock.json
+
+   ▲ Next.js 15.5.23
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.29.51:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.4s
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ○ Compiling /sim ...
+ ✓ Compiled /sim in 28.3s (662 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /sim 200 in 29956ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /sim 200 in 30001ms
+ GET /sim 200 in 30002ms
+ GET /sim 200 in 3534ms
+ GET /sim 200 in 1327ms
+ GET /sim 200 in 1328ms
+ GET /sim 200 in 1331ms
+ GET /sim 200 in 521ms
+ GET /sim 200 in 93ms
+ GET /sim 200 in 147ms
+ GET /sim 200 in 124ms
+ GET /sim 200 in 212ms
+ ✓ Compiled in 1140ms (648 modules)
+ ✓ Compiled in 770ms (648 modules)
+ ✓ Compiled in 827ms (648 modules)
+ GET /sim 200 in 354ms
+ GET /sim 200 in 134ms
+ GET /sim 200 in 166ms
+ GET /sim 200 in 165ms
+ GET /sim 200 in 134ms

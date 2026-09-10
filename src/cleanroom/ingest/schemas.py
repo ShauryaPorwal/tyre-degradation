@@ -5,8 +5,7 @@ Every write boundary validates against these; failures raise loudly
 (project rule 6 — never silently drop or coerce).
 """
 
-import pandera.pandas as pa
-from pandera.pandas import Column, DataFrameSchema, Check
+from pandera.pandas import Check, Column, DataFrameSchema
 
 SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "R"]
 COMPOUNDS = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]
@@ -99,7 +98,7 @@ EXCLUSIONS_SCHEMA = DataFrameSchema(
 # ---------------------------------------------------------------------------
 # 7.3  results/posterior.json — validated with pydantic (it is JSON, not a frame)
 # ---------------------------------------------------------------------------
-from pydantic import BaseModel, Field  # noqa: E402
+from pydantic import BaseModel, Field
 
 
 class CliffResult(BaseModel):

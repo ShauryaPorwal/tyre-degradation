@@ -10,7 +10,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
-RAW_DIR = DATA_DIR / "raw"                      # IMMUTABLE (project rule 10)
+RAW_DIR = DATA_DIR / "raw"  # IMMUTABLE (project rule 10)
 INTERIM_DIR = DATA_DIR / "interim"
 PROCESSED_DIR = DATA_DIR / "processed"
 RESULTS_DIR = REPO_ROOT / "results"

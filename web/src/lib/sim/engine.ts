@@ -81,8 +81,9 @@ export class SimEngine {
   private features(lap: RaceLap): number[] {
     return this.terms.map((t) => {
       if (t.key === "base") return 1;
-      if (t.key === "fuel") return lap.fuel_kg ?? 0;
-      if (t.key.startsWith("deg:")) return lap.compound === t.key.slice(4) ? lap.tyre_age : 0;
+      if (t.key === "fuel") return lap.fuel_kg != null && Number.isFinite(lap.fuel_kg) ? lap.fuel_kg : 0;
+      if (t.key.startsWith("deg:"))
+        return lap.compound === t.key.slice(4) ? (lap.tyre_age != null && Number.isFinite(lap.tyre_age) ? lap.tyre_age : 0) : 0;
       if (t.key.startsWith("off:")) return lap.compound === t.key.slice(4) ? 1 : 0;
       if (t.key === "traffic") return lap.gap_ahead_s != null && lap.gap_ahead_s < TRAFFIC_GAP_S ? 1 : 0;
       if (t.key === "temp") return (lap.track_temp_c ?? TEMP_REF_C) - TEMP_REF_C;
@@ -156,8 +157,42 @@ export class SimEngine {
     return null;
   }
 
-  /** Process one lap; returns the full analysis snapshot after it. */
+  /** Process one lap; returns the full analysis snapshot after it.
+      Critical-state gate FIRST: a lap with missing/NaN lap time, compound or
+      tyre age is never fitted and never allowed to poison the posterior —
+      it returns a precise diagnostic instead (fail loudly, rule 6). */
   processLap(lap: RaceLap): LapAnalysis {
+    const problems: string[] = [];
+    if (!Number.isFinite(lap.lap_time_s)) problems.push(`lap time missing/not a number (${lap.lap_time_s})`);
+    if (!lap.compound || lap.compound.trim() === "") problems.push("tyre compound missing — no stint or declaration supplies it");
+    if (!Number.isFinite(lap.tyre_age))
+      problems.push("tyre age unavailable: no stint history, tyre-change event or supplied value resolved it");
+    if (lap.fuel_kg != null && !Number.isFinite(lap.fuel_kg)) problems.push("fuel load is not a number");
+    if (problems.length > 0) {
+      const reason = `Invalid state — ${problems.join("; ")}.`;
+      return {
+        lap: lap.lap,
+        lapTime: Number.isFinite(lap.lap_time_s) ? lap.lap_time_s : 0,
+        excluded: true,
+        excludeReason: reason,
+        refLap: null,
+        deltaVsRef: null,
+        components: [],
+        residual_s: 0,
+        predicted: 0,
+        predictedPm: SIGMA_NOISE_S,
+        nextPredicted: null,
+        nextPredictedPm: null,
+        tyre: { wearPct: 0, remainingLaps: 0, degRate: 0, degRatePm: 0, projLossIn5: 0 },
+        strategy: {
+          optimalPitLap: null, windowLo: null, windowHi: null, pitNowProb: 0,
+          targetCompound: null,
+          reason: `Strategy unavailable for lap ${lap.lap}: ${reason}`,
+        },
+        nCleanFitted: this.nClean,
+        evidence: { state: "INSUFFICIENT", reason },
+      };
+    }
     const x = this.features(lap);
     const reason = this.excludeReason(lap);
     const isEvent = Boolean(lap.overtake || lap.defended);
@@ -249,9 +284,11 @@ export class SimEngine {
       const nx: RaceLap = {
         ...lap,
         lap: lap.lap + 1,
-        tyre_age: lap.tyre_age + 1,
+        tyre_age: lap.tyre_age != null && Number.isFinite(lap.tyre_age) ? lap.tyre_age + 1 : lap.tyre_age,
         fuel_kg:
-          lap.fuel_kg != null ? Math.max(lap.fuel_kg - (this.burnEst ?? 0), 0) : undefined,
+          lap.fuel_kg != null && Number.isFinite(lap.fuel_kg)
+            ? Math.max(lap.fuel_kg - (this.burnEst ?? 0), 0)
+            : undefined,
         pit_in: false,
         pit_out: false,
         vsc: false,
@@ -318,9 +355,10 @@ export class SimEngine {
     const degRate = this.mu[i];
     const degRatePm = Math.sqrt(Math.max(this.cov[i][i], 0));
     const typical = TYPICAL_STINT_LAPS[lap.compound] ?? 25;
+    const age = lap.tyre_age ?? 0; // gated in processLap: NaN never reaches here
     return {
-      wearPct: Math.min((lap.tyre_age / typical) * 100, 130),
-      remainingLaps: Math.max(typical - lap.tyre_age, 0),
+      wearPct: Math.min((age / typical) * 100, 130),
+      remainingLaps: Math.max(typical - age, 0),
       degRate,
       degRatePm,
       projLossIn5: degRate * 5,
@@ -362,7 +400,7 @@ export class SimEngine {
     const pMax = this.hasPitted ? total : total - 1;
     const ctx: PitContext = {
       currentLap: lap.lap,
-      tyreAge: lap.tyre_age,
+      tyreAge: lap.tyre_age ?? 0, // gated in processLap
       totalLaps: total,
       hasPitted: this.hasPitted,
       pitLoss,

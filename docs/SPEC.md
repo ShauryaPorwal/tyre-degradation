@@ -502,11 +502,12 @@ Harvest skeleton:
 import fastf1
 from pathlib import Path
 
-fastf1.Cache.enable_cache('./data/raw/fastf1_cache')
+fastf1.Cache.enable_cache("./data/raw/fastf1_cache")
 
 LAP_TARGETS = [(y, r) for y in (2023, 2024, 2025, 2026) for r in range(1, 25)]
-TELEM_PRIORITY = [(2025, r) for r in (1, 4, 7, 9, 14)]   # do these first
-TELEM_REST     = [(2025, r) for r in range(1, 25)] + [(2024, r) for r in range(1, 25)]
+TELEM_PRIORITY = [(2025, r) for r in (1, 4, 7, 9, 14)]  # do these first
+TELEM_REST = [(2025, r) for r in range(1, 25)] + [(2024, r) for r in range(1, 25)]
+
 
 def harvest(year, rnd, session, with_telemetry):
     try:
@@ -514,7 +515,7 @@ def harvest(year, rnd, session, with_telemetry):
         s.load(telemetry=with_telemetry, weather=True, messages=True)
         return s
     except Exception as e:
-        log_failure(year, rnd, session, e)   # never let one failure kill the run
+        log_failure(year, rnd, session, e)  # never let one failure kill the run
         return None
 ```
 

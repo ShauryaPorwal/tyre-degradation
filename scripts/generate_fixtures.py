@@ -18,9 +18,9 @@ import pandas as pd
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from cleanroom.config import SEED, FIXTURES_DIR  # noqa: E402
-from cleanroom.decision import voi  # noqa: E402
-from cleanroom.ingest import schemas  # noqa: E402
+from cleanroom.config import FIXTURES_DIR, SEED
+from cleanroom.decision import voi
+from cleanroom.ingest import schemas
 
 rng = np.random.default_rng(SEED)
 
@@ -56,14 +56,14 @@ DRIVERS = [
 
 # ---- ground truth used to synthesise lap times (fixtures only) -------------
 TRUTH = {
-    "fuel_effect_s_per_kg": 0.032,          # near the industry 0.03 rule of thumb
-    "burn_rate_kg_lap": 2.9,                # Barcelona-class burn rate, in the F31 band
-    "start_fuel_kg": {1: 60.0, 2: 40.0, 3: 25.0},   # practice runs are not full tanks
+    "fuel_effect_s_per_kg": 0.032,  # near the industry 0.03 rule of thumb
+    "burn_rate_kg_lap": 2.9,  # Barcelona-class burn rate, in the F31 band
+    "start_fuel_kg": {1: 60.0, 2: 40.0, 3: 25.0},  # practice runs are not full tanks
     "deg_s_per_energy": {"SOFT": 0.0031, "MEDIUM": 0.0021, "HARD": 0.0013},
     "base_offset": {"SOFT": 0.0, "MEDIUM": 0.55, "HARD": 1.05},
-    "cliff": {"SOFT": {"knot": 18.2, "extra": 0.021}},   # per-energy-unit extra slope
-    "track_evo_total_s": 0.85,              # total evolution over the hour
-    "e_lap_mean": 1.55,                      # arbitrary energy units per lap
+    "cliff": {"SOFT": {"knot": 18.2, "extra": 0.021}},  # per-energy-unit extra slope
+    "track_evo_total_s": 0.85,  # total evolution over the hour
+    "e_lap_mean": 1.55,  # arbitrary energy units per lap
 }
 
 STINT_PLAN = [(1, "MEDIUM", 8), (2, "SOFT", 10), (3, "SOFT", 8)]
@@ -108,22 +108,38 @@ def make_laps_and_features():
                 if is_out or is_in:
                     lt += float(rng.uniform(8, 15))  # in/out laps are slow
                 s1, s2 = lt * 0.28, lt * 0.41
-                laps.append(dict(
-                    session_id=SESSION_ID, year=2025, circuit=CIRCUIT, session_type="FP2",
-                    driver=code, driver_number=num, team=team, lap_number=lap_no,
-                    stint=stint, compound=compound, tyre_life=i, fresh_tyre=i == 0,
-                    lap_time=round(lt, 3), s1=round(s1, 3), s2=round(s2, 3),
-                    s3=round(lt - s1 - s2, 3),
-                    speed_i1=round(float(rng.normal(305, 4)), 1),
-                    speed_i2=round(float(rng.normal(270, 4)), 1),
-                    speed_fl=round(float(rng.normal(288, 4)), 1),
-                    speed_st=round(float(rng.normal(322, 3)), 1),
-                    pit_in=is_in, pit_out=is_out, track_status="1", is_accurate=not (is_in or is_out),
-                    session_clock_s=round(clock, 1),
-                    track_temp=round(34.0 + 3.0 * np.sin(clock / 1800), 1),
-                    air_temp=round(26.0 + 1.5 * np.sin(clock / 2400), 1),
-                    rainfall=False,
-                ))
+                laps.append(
+                    {
+                        "session_id": SESSION_ID,
+                        "year": 2025,
+                        "circuit": CIRCUIT,
+                        "session_type": "FP2",
+                        "driver": code,
+                        "driver_number": num,
+                        "team": team,
+                        "lap_number": lap_no,
+                        "stint": stint,
+                        "compound": compound,
+                        "tyre_life": i,
+                        "fresh_tyre": i == 0,
+                        "lap_time": round(lt, 3),
+                        "s1": round(s1, 3),
+                        "s2": round(s2, 3),
+                        "s3": round(lt - s1 - s2, 3),
+                        "speed_i1": round(float(rng.normal(305, 4)), 1),
+                        "speed_i2": round(float(rng.normal(270, 4)), 1),
+                        "speed_fl": round(float(rng.normal(288, 4)), 1),
+                        "speed_st": round(float(rng.normal(322, 3)), 1),
+                        "pit_in": is_in,
+                        "pit_out": is_out,
+                        "track_status": "1",
+                        "is_accurate": not (is_in or is_out),
+                        "session_clock_s": round(clock, 1),
+                        "track_temp": round(34.0 + 3.0 * np.sin(clock / 1800), 1),
+                        "air_temp": round(26.0 + 1.5 * np.sin(clock / 2400), 1),
+                        "rainfall": False,
+                    }
+                )
                 clean = not (is_in or is_out) and traffic < 0.20
                 reason = None
                 if is_out:
@@ -132,20 +148,31 @@ def make_laps_and_features():
                     reason = "pit_in_lap"
                 elif traffic >= 0.20:
                     reason = "traffic_contaminated"
-                feats.append(dict(
-                    session_id=SESSION_ID, driver=code, lap_number=lap_no,
-                    m_hat_kg=round(800.0 + fuel, 2),  # 800 kg: 2025 min weight incl. driver (FIA)
-                    m_hat_se=round(float(rng.uniform(1.5, 3.5)), 2),
-                    fuel_kg=round(fuel, 2),
-                    burn_rate_kg_lap=round(TRUTH["burn_rate_kg_lap"] + float(rng.normal(0, 0.05)), 3),
-                    E_lat=round(e_lap * 0.72, 4), E_lon=round(e_lap * 0.28, 4),
-                    E_tyre=round(e_lap, 4), E_cum=round(e_cum, 4),
-                    lac_index=round(float(rng.exponential(0.3)), 3),
-                    push_residual=round(float(rng.normal(0, 0.08)), 4),
-                    traffic_exposure=round(traffic, 4),
-                    min_dist_ahead_m=round(float(rng.uniform(5, 400)), 1),
-                    clean_flag=clean, exclusion_reason=reason,
-                ))
+                feats.append(
+                    {
+                        "session_id": SESSION_ID,
+                        "driver": code,
+                        "lap_number": lap_no,
+                        "m_hat_kg": round(
+                            800.0 + fuel, 2
+                        ),  # 800 kg: 2025 min weight incl. driver (FIA)
+                        "m_hat_se": round(float(rng.uniform(1.5, 3.5)), 2),
+                        "fuel_kg": round(fuel, 2),
+                        "burn_rate_kg_lap": round(
+                            TRUTH["burn_rate_kg_lap"] + float(rng.normal(0, 0.05)), 3
+                        ),
+                        "E_lat": round(e_lap * 0.72, 4),
+                        "E_lon": round(e_lap * 0.28, 4),
+                        "E_tyre": round(e_lap, 4),
+                        "E_cum": round(e_cum, 4),
+                        "lac_index": round(float(rng.exponential(0.3)), 3),
+                        "push_residual": round(float(rng.normal(0, 0.08)), 4),
+                        "traffic_exposure": round(traffic, 4),
+                        "min_dist_ahead_m": round(float(rng.uniform(5, 400)), 1),
+                        "clean_flag": clean,
+                        "exclusion_reason": reason,
+                    }
+                )
                 fuel = max(fuel - TRUTH["burn_rate_kg_lap"], 1.0)
                 clock += lt + (60.0 if is_in else 0.0)
             clock += float(rng.uniform(180, 420))  # garage time between stints
@@ -156,18 +183,32 @@ def make_exclusions(feats: pd.DataFrame) -> pd.DataFrame:
     rows_in = len(feats)
     ledger = []
     order = [
-        ("in_out_laps", "pit in/out laps are not degradation observations",
-         (feats.exclusion_reason.isin(["pit_in_lap", "pit_out_lap"])).sum()),
+        (
+            "in_out_laps",
+            "pit in/out laps are not degradation observations",
+            (feats.exclusion_reason.isin(["pit_in_lap", "pit_out_lap"])).sum(),
+        ),
         ("neutralisation", "SC/VSC/yellow/red laps", 0),
         ("inaccurate", "FastF1 IsAccurate == False", 0),
         ("outlier_107pct", "outside 107% of driver stint median", 0),
-        ("traffic", ">20% of lap within dirty-air threshold",
-         (feats.exclusion_reason == "traffic_contaminated").sum()),
+        (
+            "traffic",
+            ">20% of lap within dirty-air threshold",
+            (feats.exclusion_reason == "traffic_contaminated").sum(),
+        ),
     ]
     remaining = rows_in
     for i, (name, reason, removed) in enumerate(order, 1):
-        ledger.append(dict(session_id=SESSION_ID, filter_name=name, filter_order=i,
-                           rows_in=int(remaining), rows_removed=int(removed), reason=reason))
+        ledger.append(
+            {
+                "session_id": SESSION_ID,
+                "filter_name": name,
+                "filter_order": i,
+                "rows_in": int(remaining),
+                "rows_removed": int(removed),
+                "reason": reason,
+            }
+        )
         remaining -= int(removed)
     return pd.DataFrame(ledger)
 
@@ -178,8 +219,10 @@ def make_posterior():
         cliff = TRUTH["cliff"].get(comp)
         return {
             "base_pace": round(base + TRUTH["base_offset"][comp], 2),
-            "base_pace_ci": [round(base + TRUTH["base_offset"][comp] - 0.11, 2),
-                             round(base + TRUTH["base_offset"][comp] + 0.11, 2)],
+            "base_pace_ci": [
+                round(base + TRUTH["base_offset"][comp] - 0.11, 2),
+                round(base + TRUTH["base_offset"][comp] + 0.11, 2),
+            ],
             "slope_per_energy": t,
             "slope_ci": [round(t * 0.77, 4), round(t * 1.26, 4)],
             "slope_per_lap_equiv": round(t * TRUTH["e_lap_mean"] * 100 / 5.5, 3),
@@ -190,6 +233,7 @@ def make_posterior():
                 "accepted": bool(cliff),
             },
         }
+
     posterior = {
         "session_id": SESSION_ID,
         "model_version": "fixture_v1",
@@ -198,8 +242,10 @@ def make_posterior():
         "compounds": {c: compound_block(c, 78.42) for c in ("SOFT", "MEDIUM", "HARD")},
         "track_evolution": [[float(t), round(track_evo(t), 3)] for t in range(0, 3601, 300)],
         "confounder_decomposition": {
-            "fuel_s_per_lap": 0.31, "track_evo_s_per_lap": 0.06,
-            "traffic_s_per_lap": 0.03, "residual_true_deficit": 0.00,
+            "fuel_s_per_lap": 0.31,
+            "track_evo_s_per_lap": 0.06,
+            "traffic_s_per_lap": 0.03,
+            "residual_true_deficit": 0.00,
         },
     }
     schemas.Posterior.model_validate(posterior)  # fail loudly if the fixture drifts
@@ -228,13 +274,16 @@ def make_sandbagging():
     rows = []
     for code, num, team, base in DRIVERS:
         hide = float(np.clip(rng.exponential(0.25) * (1 if rng.random() < 0.6 else 0.2), 0, 1.2))
-        rows.append({
-            "driver": code, "team": team,
-            "timing_sheet_pace": round(base + TRUTH["base_offset"]["SOFT"] + hide + 0.3, 3),
-            "true_pace": round(base + TRUTH["base_offset"]["SOFT"] + 0.3, 3),
-            "delta_s": round(hide, 3),
-            "ci": [round(max(hide - 0.12, 0), 3), round(hide + 0.12, 3)],
-        })
+        rows.append(
+            {
+                "driver": code,
+                "team": team,
+                "timing_sheet_pace": round(base + TRUTH["base_offset"]["SOFT"] + hide + 0.3, 3),
+                "true_pace": round(base + TRUTH["base_offset"]["SOFT"] + 0.3, 3),
+                "delta_s": round(hide, 3),
+                "ci": [round(max(hide - 0.12, 0), 3), round(hide + 0.12, 3)],
+            }
+        )
     rows.sort(key=lambda r: -r["delta_s"])
     return {"session_id": SESSION_ID, "rows": rows}
 
@@ -245,18 +294,48 @@ def make_validation():
         "frozen": False,
         "note": "FIXTURE — synthetic placeholder until results/frozen_v1.json exists (Phase 5)",
         "table": [
-            {"method": "A — Naive lap_time ~ age", "mae": 0.311, "compound_order_pct": 42,
-             "infeasible_stint_pct": 74, "coverage_90": None},
-            {"method": "B — Fixed 0.03 s/kg (industry)", "mae": 0.242, "compound_order_pct": 55,
-             "infeasible_stint_pct": 61, "coverage_90": None},
-            {"method": "C — Clamped slope (published SOTA)", "mae": 0.219, "compound_order_pct": 63,
-             "infeasible_stint_pct": 38, "coverage_90": None},
-            {"method": "D — ARIMA", "mae": 0.256, "compound_order_pct": 49,
-             "infeasible_stint_pct": 66, "coverage_90": None},
-            {"method": "CLEANROOM (MixedLM)", "mae": 0.147, "compound_order_pct": 82,
-             "infeasible_stint_pct": 6, "coverage_90": 87},
-            {"method": "CLEANROOM (Hierarchical)", "mae": 0.128, "compound_order_pct": 88,
-             "infeasible_stint_pct": 3, "coverage_90": 91},
+            {
+                "method": "A — Naive lap_time ~ age",
+                "mae": 0.311,
+                "compound_order_pct": 42,
+                "infeasible_stint_pct": 74,
+                "coverage_90": None,
+            },
+            {
+                "method": "B — Fixed 0.03 s/kg (industry)",
+                "mae": 0.242,
+                "compound_order_pct": 55,
+                "infeasible_stint_pct": 61,
+                "coverage_90": None,
+            },
+            {
+                "method": "C — Clamped slope (published SOTA)",
+                "mae": 0.219,
+                "compound_order_pct": 63,
+                "infeasible_stint_pct": 38,
+                "coverage_90": None,
+            },
+            {
+                "method": "D — ARIMA",
+                "mae": 0.256,
+                "compound_order_pct": 49,
+                "infeasible_stint_pct": 66,
+                "coverage_90": None,
+            },
+            {
+                "method": "CLEANROOM (MixedLM)",
+                "mae": 0.147,
+                "compound_order_pct": 82,
+                "infeasible_stint_pct": 6,
+                "coverage_90": 87,
+            },
+            {
+                "method": "CLEANROOM (Hierarchical)",
+                "mae": 0.128,
+                "compound_order_pct": 88,
+                "infeasible_stint_pct": 3,
+                "coverage_90": 91,
+            },
         ],
         "reliability": [
             {"nominal": n, "empirical": round(min(n + rng.normal(0, 2.0), 100), 1)}
@@ -301,16 +380,34 @@ MECHANISM_TAG = {
 # are assigned real session_ids after the harvest, and the UI must render
 # them as designed empty states (UI.md rule 7), never as broken buttons.
 PRESETS = [
-    dict(key="broken-baseline", title="The Broken Baseline",
-         purpose="Naive fitting gives a negative slope", session_id=None, available=False),
-    dict(key="clean-case", title="The Clean Case",
-         purpose="High health score and a clear soft-compound cliff",
-         session_id=SESSION_ID, available=True),
-    dict(key="hard-case", title="The Hard Case",
-         purpose="Low health score — the confidence gate refuses to answer",
-         session_id=None, available=False),
-    dict(key="validated-case", title="The Validated Case",
-         purpose="Smallest practice→race backtest error", session_id=None, available=False),
+    {
+        "key": "broken-baseline",
+        "title": "The Broken Baseline",
+        "purpose": "Naive fitting gives a negative slope",
+        "session_id": None,
+        "available": False,
+    },
+    {
+        "key": "clean-case",
+        "title": "The Clean Case",
+        "purpose": "High health score and a clear soft-compound cliff",
+        "session_id": SESSION_ID,
+        "available": True,
+    },
+    {
+        "key": "hard-case",
+        "title": "The Hard Case",
+        "purpose": "Low health score — the confidence gate refuses to answer",
+        "session_id": None,
+        "available": False,
+    },
+    {
+        "key": "validated-case",
+        "title": "The Validated Case",
+        "purpose": "Smallest practice→race backtest error",
+        "session_id": None,
+        "available": False,
+    },
 ]
 
 
@@ -338,32 +435,32 @@ def make_session_meta(laps: pd.DataFrame, feats: pd.DataFrame, posterior: dict) 
         clean_by_comp[comp] = nl
         sigma = compound_sigma_s_per_lap(posterior, comp, nl)
         state = voi.sufficiency_state(nl, sigma)
-        sufficiency[comp] = dict(
-            state=state,
-            n_clean_laps=nl,
-            sigma_s_per_lap=round(sigma, 4),
-            mechanism=MECHANISM_TAG[comp] if state != "RED" else None,
-        )
+        sufficiency[comp] = {
+            "state": state,
+            "n_clean_laps": nl,
+            "sigma_s_per_lap": round(sigma, 4),
+            "mechanism": MECHANISM_TAG[comp] if state != "RED" else None,
+        }
 
-    coverage = sum(
-        nl >= voi.AMBER_MIN_CLEAN_LAPS for nl in clean_by_comp.values()
-    ) / len(clean_by_comp)
-    traffic_rate = float((feats.exclusion_reason == "traffic_contaminated").mean())
-    meta = dict(
-        session_id=SESSION_ID,
-        display_name="Spanish Grand Prix 2025 · FP2",
-        n_laps=n_laps,
-        n_clean_laps=n_clean,
-        health=voi.session_health(n_clean / n_laps, coverage, traffic_rate, 1.0),
-        health_components=dict(
-            clean_lap_yield=round(n_clean / n_laps, 3),
-            compound_coverage=round(coverage, 3),
-            traffic_rate=round(traffic_rate, 3),
-            session_completeness=1.0,  # full fixture session, no red flags
-        ),
-        sufficiency=sufficiency,
-        presets=PRESETS,
+    coverage = sum(nl >= voi.AMBER_MIN_CLEAN_LAPS for nl in clean_by_comp.values()) / len(
+        clean_by_comp
     )
+    traffic_rate = float((feats.exclusion_reason == "traffic_contaminated").mean())
+    meta = {
+        "session_id": SESSION_ID,
+        "display_name": "Spanish Grand Prix 2025 · FP2",
+        "n_laps": n_laps,
+        "n_clean_laps": n_clean,
+        "health": voi.session_health(n_clean / n_laps, coverage, traffic_rate, 1.0),
+        "health_components": {
+            "clean_lap_yield": round(n_clean / n_laps, 3),
+            "compound_coverage": round(coverage, 3),
+            "traffic_rate": round(traffic_rate, 3),
+            "session_completeness": 1.0,  # full fixture session, no red flags
+        },
+        "sufficiency": sufficiency,
+        "presets": PRESETS,
+    }
     schemas.SessionMeta.model_validate(meta)
     return meta
 
@@ -387,13 +484,13 @@ def make_decision(session_meta: dict) -> dict:
     # simulator exists (Phase 6) to compute them properly.
     recommendations[0]["one_stop_prob_before"] = 0.48
     recommendations[0]["one_stop_prob_after"] = 0.76
-    decision = dict(
-        session_id=SESSION_ID,
-        model_version="fixture_v1",
-        sigma_resid_s=SIGMA_RESID_S,
-        recommendations=recommendations,
-        knowledge_gaps=voi.knowledge_gaps(evidence),
-    )
+    decision = {
+        "session_id": SESSION_ID,
+        "model_version": "fixture_v1",
+        "sigma_resid_s": SIGMA_RESID_S,
+        "recommendations": recommendations,
+        "knowledge_gaps": voi.knowledge_gaps(evidence),
+    }
     schemas.Decision.model_validate(decision)
     return decision
 
@@ -405,15 +502,21 @@ def make_replay():
     for lap in range(4, 37, 2):
         width = 0.0042 * (36 / lap) ** 0.85
         centre = true_slope + float(rng.normal(0, width / 6))
-        frames.append({
-            "lap": lap,
-            "n_clean_laps": int(lap * 4.7),
-            "slope": round(centre, 5),
-            "slope_ci": [round(centre - width / 2, 5), round(centre + width / 2, 5)],
-            "gate": "INSUFFICIENT_DATA" if lap < 10 else "PASS",
-        })
-    return {"session_id": SESSION_ID, "compound": "SOFT", "true_slope": true_slope,
-            "frames": frames}
+        frames.append(
+            {
+                "lap": lap,
+                "n_clean_laps": int(lap * 4.7),
+                "slope": round(centre, 5),
+                "slope_ci": [round(centre - width / 2, 5), round(centre + width / 2, 5)],
+                "gate": "INSUFFICIENT_DATA" if lap < 10 else "PASS",
+            }
+        )
+    return {
+        "session_id": SESSION_ID,
+        "compound": "SOFT",
+        "true_slope": true_slope,
+        "frames": frames,
+    }
 
 
 def main():
@@ -449,8 +552,10 @@ def main():
         (FIXTURES_DIR / f"{name}.json").write_text(text)
         (WEB_DATA / f"{name}.json").write_text(text)
 
-    print(f"fixtures: {len(laps)} laps, {len(feats)} feature rows, "
-          f"{len(excl)} ledger rows -> {FIXTURES_DIR} and {WEB_DATA}")
+    print(
+        f"fixtures: {len(laps)} laps, {len(feats)} feature rows, "
+        f"{len(excl)} ledger rows -> {FIXTURES_DIR} and {WEB_DATA}"
+    )
 
 
 if __name__ == "__main__":

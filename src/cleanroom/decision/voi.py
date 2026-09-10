@@ -97,9 +97,9 @@ class CompoundEvidence:
     """Current posterior state for one compound, in s/lap units."""
 
     compound: str
-    sigma: float          # posterior sd of the deg slope, s/lap
+    sigma: float  # posterior sd of the deg slope, s/lap
     n_clean_laps: int
-    blocks: str | None    # downstream decision this width leaves ambiguous
+    blocks: str | None  # downstream decision this width leaves ambiguous
 
 
 def rank_candidate_runs(
