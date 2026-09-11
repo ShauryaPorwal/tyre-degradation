@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-/* Live Simulation — orchestration. The engine runs once over the loaded race
-   (each lap's analysis uses only the laps before it — the arrays are built
+/* Live Simulation â€” orchestration. The engine runs once over the loaded race
+   (each lap's analysis uses only the laps before it â€” the arrays are built
    sequentially, so "replay" is honest, not re-fitted hindsight); playback
    reveals the analyses on a tick, and every panel reads the revealed
    frontier. Charts, tyre state, prediction and strategy therefore update
@@ -36,10 +36,10 @@ function headline(a: LapAnalysis): string {
         : "defending";
 
       return `Lap ${a.lap} carries an ${event} event: ${
-        a.residual_s >= 0 ? "+" : "−"
+        a.residual_s >= 0 ? "+" : "âˆ’"
       }${Math.abs(a.residual_s).toFixed(
         2,
-      )} s above the model — attributed to the ${event} plus driver inputs, excluded from the fit.`;
+      )} s above the model â€” attributed to the ${event} plus driver inputs, excluded from the fit.`;
     }
 
     return `Lap ${a.lap} excluded from the fit: ${a.excludeReason}.`;
@@ -51,14 +51,14 @@ function headline(a: LapAnalysis): string {
     .slice(0, 4)
     .map(
       (c) =>
-        `${c.value_s >= 0 ? "+" : "−"}${Math.abs(c.value_s).toFixed(
+        `${c.value_s >= 0 ? "+" : "âˆ’"}${Math.abs(c.value_s).toFixed(
           2,
         )} s ${c.label.toLowerCase()}${c.priorDominated ? " (prior)" : ""}`,
     );
 
   if (Math.abs(a.residual_s) >= 0.01) {
     parts.push(
-      `${a.residual_s >= 0 ? "+" : "−"}${Math.abs(
+      `${a.residual_s >= 0 ? "+" : "âˆ’"}${Math.abs(
         a.residual_s,
       ).toFixed(2)} s driver inputs / unexplained`,
     );
@@ -66,7 +66,7 @@ function headline(a: LapAnalysis): string {
 
   const prelim =
     a.evidence.state === "INSUFFICIENT"
-      ? ` (preliminary · ${a.nCleanFitted} clean laps)`
+      ? ` (preliminary Â· ${a.nCleanFitted} clean laps)`
       : "";
 
   if (a.refLap == null || a.refLap === a.lap) {
@@ -76,7 +76,7 @@ function headline(a: LapAnalysis): string {
   }
 
   return `Lap ${a.lap} was ${
-    a.deltaVsRef != null && a.deltaVsRef >= 0 ? "+" : "−"
+    a.deltaVsRef != null && a.deltaVsRef >= 0 ? "+" : "âˆ’"
   }${Math.abs(a.deltaVsRef ?? 0).toFixed(
     2,
   )} s vs lap ${a.refLap}: ${parts.join(", ")}${prelim}.`;
@@ -196,7 +196,7 @@ export function SimScreen() {
     return (
       <>
         <div className="eyebrow">
-          Live simulation · choose a data source
+          Live simulation Â· choose a data source
         </div>
 
         <SimIngest
@@ -238,8 +238,7 @@ export function SimScreen() {
     <>
       <div className="eyebrow">
         {race.display_name}
-        {race.synthetic &&
-          " · synthetic demo with known ground truth"}
+        {race.synthetic && race.source !== "video" && " · synthetic demo with known ground truth"}
       </div>
 
       <div className="sim-controls">
@@ -253,7 +252,7 @@ export function SimScreen() {
             setPlaying((p) => !p);
           }}
         >
-          {playing ? "❚❚ Pause" : "▶ Run race"}
+          {playing ? "âšâš Pause" : "â–¶ Run race"}
         </button>
 
         {[1, 2, 4].map((s) => (
@@ -265,7 +264,7 @@ export function SimScreen() {
             }}
             onClick={() => setSpeed(s)}
           >
-            {s}×
+            {s}Ã—
           </button>
         ))}
 
@@ -290,7 +289,7 @@ export function SimScreen() {
           lap {current.lap} / {race.total_laps}
         </span>
 
-        {race.synthetic && (
+        {race.synthetic && race.source !== "video" && (
           <button
             className="btn"
             style={{
@@ -300,7 +299,7 @@ export function SimScreen() {
               setShowTruth((s) => !s)
             }
           >
-            ◆ truth overlay
+            â—† truth overlay
           </button>
         )}
 
@@ -323,9 +322,9 @@ export function SimScreen() {
           unit="s"
           meta={`${compoundLabel(
             currentLap.compound,
-          )} · age ${currentLap.tyre_age}${
+          )} Â· age ${currentLap.tyre_age}${
             currentLap.fuel_kg != null
-              ? ` · ${currentLap.fuel_kg.toFixed(
+              ? ` Â· ${currentLap.fuel_kg.toFixed(
                   0,
                 )} kg`
               : ""
@@ -339,21 +338,21 @@ export function SimScreen() {
               ? mlPrediction.toFixed(2)
               : current.nextPredicted != null
               ? current.nextPredicted.toFixed(2)
-              : "—"
+              : "â€”"
           }
           unit={
             mlPrediction != null
               ? "s"
               : current.nextPredicted != null
-              ? `± ${current.nextPredictedPm!.toFixed(
+              ? `Â± ${current.nextPredictedPm!.toFixed(
                   2,
                 )} s`
               : undefined
           }
           meta={
             mlPrediction != null
-              ? "CatBoost ML · one-step-ahead"
-              : "Bayesian fallback · one-step-ahead"
+              ? "CatBoost ML Â· one-step-ahead"
+              : "Bayesian fallback Â· one-step-ahead"
           }
         />
 
@@ -374,7 +373,7 @@ export function SimScreen() {
           }
           meta={
             current.strategy.optimalPitLap != null
-              ? `window ${current.strategy.windowLo}–${current.strategy.windowHi} · P(≤3 laps) ${(
+              ? `window ${current.strategy.windowLo}â€“${current.strategy.windowHi} Â· P(â‰¤3 laps) ${(
                   current.strategy.pitNowProb * 100
                 ).toFixed(0)}%`
               : "no further stop"
@@ -412,7 +411,7 @@ export function SimScreen() {
                   Dots: laps (hollow = excluded,
                   with reason on hover). Dashed
                   line: one-step-ahead prediction,
-                  band ±1σ. Click a lap to decompose
+                  band Â±1Ïƒ. Click a lap to decompose
                   it.
                 </div>
               </div>

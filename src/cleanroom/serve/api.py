@@ -1,8 +1,8 @@
-"""F72 — FastAPI service. Endpoints per docs/SPEC.md section 7.4.
+﻿"""F72 â€” FastAPI service. Endpoints per docs/SPEC.md section 7.4.
 
 Phase 0: serves synthetic fixtures so the frontend is buildable before real
 data exists. From Phase 4 onward, results/ artifacts take precedence over
-fixtures automatically — same contract, no frontend change (SPEC.md 7.5).
+fixtures automatically â€” same contract, no frontend change (SPEC.md 7.5).
 """
 
 import json
@@ -22,8 +22,8 @@ app = FastAPI(title="CLEANROOM API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     # 3000 is the Next.js default; 3100 is where CLEANROOM actually runs
-    # locally (3000 is occupied by an unrelated project — see PROGRESS.md).
-    allow_origins=["http://localhost:3000", "http://localhost:3100"],
+    # locally (3000 is occupied by an unrelated project â€” see PROGRESS.md).
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3100"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,7 +35,7 @@ def _load(name: str) -> dict | list:
         path: Path = base / f"{name}.json"
         if path.exists():
             return json.loads(path.read_text())
-    raise HTTPException(404, f"artifact '{name}' not found — run `make fixtures`")
+    raise HTTPException(404, f"artifact '{name}' not found â€” run `make fixtures`")
 
 
 class SessionRequest(BaseModel):
@@ -176,3 +176,4 @@ def ml_predict(req: PredictRequest) -> dict:
         "reason": r.reason,
         "features_used": r.features_used,
     }
+
