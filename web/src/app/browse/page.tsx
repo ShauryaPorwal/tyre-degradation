@@ -1,45 +1,57 @@
-/* Browse — the secondary path behind the presets (docs/UI.md Screen 1).
-   Off the demo path by design. Sandbagging (F71) lives here after the v2
-   consolidation: it does not survive "one question per screen" on the demo
-   path, but stays available for Q&A. */
-
 import Link from "next/link";
-import { sessionMeta } from "@/lib/data";
 import { SandbaggingBoard } from "@/components/SandbaggingBoard";
+import { features, laps, sessionMeta } from "@/lib/data";
+
+const sensorCoverage = [
+  ["Lap timing", `${laps.length} records`, "AVAILABLE"],
+  ["Fuel estimate", `${features.length} records`, "AVAILABLE"],
+  ["Track / air temperature", "Lap-level", "AVAILABLE"],
+  ["Tyre compound", "Soft · Medium · Hard", "PARTIAL"],
+  ["Throttle / brake", "No records", "MISSING"],
+  ["Tyre pressure / temperature", "No records", "MISSING"],
+  ["GPS traffic gaps", "No records", "MISSING"],
+  ["Intermediate / Wet", "No dry-session records", "MISSING"],
+] as const;
 
 export default function BrowsePage() {
   return (
-    <>
-      <div className="eyebrow">All sessions</div>
-      <h1>Browse</h1>
-      <p className="lede">
-        One session exists until the harvest completes; the full 2023–2026 practice archive
-        lands here afterwards.
-      </p>
-
-      <div className="preset-grid" style={{ marginBottom: 40 }}>
-        <Link href="/" className="preset">
-          <div className="p-title">{sessionMeta.display_name}</div>
-          <div className="p-purpose">
-            {sessionMeta.session_id} · health {sessionMeta.health.toFixed(0)} ·{" "}
-            {sessionMeta.n_clean_laps} clean laps
+    <div className="archive-page">
+      <header>
+        <div className="eyebrow">CLEANROOM / SESSION ARCHIVE</div>
+        <div className="archive-title-row">
+          <div>
+            <h1>Choose a data session</h1>
+            <p className="lede">Select the session that powers the pit wall, inspect what signals are available, and see which decisions the data can support.</p>
           </div>
-        </Link>
-        <div className="preset pending" aria-disabled>
-          <div className="p-title">2023–2026 archive</div>
-          <div className="p-purpose">Every FP1/FP2/FP3 across four seasons</div>
-          <span className="p-pending">harvest in progress</span>
+          <span className="demo-pill">DEMO ARCHIVE</span>
         </div>
+      </header>
+
+      <section className="archive-featured">
+        <div><div className="section-kicker">ACTIVE SESSION</div><h2>{sessionMeta.display_name}</h2><p>{sessionMeta.session_id} · synthetic fixture · health {sessionMeta.health.toFixed(0)} / 100</p></div>
+        <div className="archive-actions"><Link href="/" className="btn accent">Open Pit Wall</Link><Link href="/telemetry" className="btn">Open Telemetry</Link></div>
+      </section>
+
+      <section className="archive-stat-grid">
+        <ArchiveStat label="Recorded laps" value={String(sessionMeta.n_laps)} />
+        <ArchiveStat label="Clean laps" value={String(sessionMeta.n_clean_laps)} />
+        <ArchiveStat label="Drivers" value="20" />
+        <ArchiveStat label="Session type" value="FP2" />
+      </section>
+
+      <div className="archive-columns">
+        <section className="archive-panel"><div className="panel-heading"><div><div className="section-kicker">SESSION HEALTH</div><h2>Can this session answer the question?</h2></div></div><div className="archive-health"><div className="archive-health-number">{sessionMeta.health.toFixed(0)}</div><div><strong>Session health</strong><p>Based on clean-lap yield, compound coverage, traffic contamination and completeness.</p></div></div><div className="health-bars">{Object.entries(sessionMeta.health_components).map(([key, value]) => <div key={key}><span>{key.replaceAll("_", " ")}</span><i><b style={{ width: `${value * 100}%` }} /></i><strong>{(value * 100).toFixed(0)}%</strong></div>)}</div></section>
+
+        <section className="archive-panel"><div className="panel-heading"><div><div className="section-kicker">SIGNAL COVERAGE</div><h2>What is inside?</h2></div></div><div className="coverage-list">{sensorCoverage.map(([label, detail, state]) => <div key={label}><span className={`coverage-dot ${state.toLowerCase()}`} /><div><strong>{label}</strong><small>{detail}</small></div><b>{state}</b></div>)}</div></section>
       </div>
 
-      <div className="section-rule">Sandbagging leaderboard</div>
-      <p className="lede" style={{ marginBottom: 16 }}>
-        Timing-sheet pace vs deconfounded true pace — who is hiding the most. Kept off the
-        main path; interesting, but a different question.
-      </p>
-      <section className="card">
-        <SandbaggingBoard />
-      </section>
-    </>
+      <section className="archive-panel"><div className="panel-heading"><div><div className="section-kicker">DATA ROUTES</div><h2>What can you do with this session?</h2></div></div><div className="archive-route-grid"><Link href="/deconfound"><strong>Deconfound</strong><span>Separate fuel, traffic and track evolution.</span></Link><Link href="/curves"><strong>Tyre Intelligence</strong><span>Estimate dry-compound degradation.</span></Link><Link href="/validation"><strong>Validation</strong><span>Check model error and uncertainty.</span></Link><Link href="/sim"><strong>Live Sim</strong><span>Replay the available lap sequence.</span></Link></div></section>
+
+      <section className="archive-panel"><div className="panel-heading"><div><div className="section-kicker">SECONDARY ANALYSIS</div><h2>Sandbagging leaderboard</h2></div></div><p className="archive-description">Timing-sheet pace compared with deconfounded pace. This is an analysis view, not a pit command.</p><SandbaggingBoard /></section>
+
+      <section className="archive-panel archive-roadmap"><div className="section-kicker">NEXT DATA DROP</div><h2>What the live archive still needs</h2><p>When a sensor session is uploaded, it should arrive with timestamps, driver/car identity, tyre events, C1–C5 or wet-compound labels, GPS position, fuel, throttle, brake, tyre temperatures, tyre pressure and weather context.</p></section>
+    </div>
   );
 }
+
+function ArchiveStat({ label, value }: { label: string; value: string }) { return <div className="archive-stat"><span>{label}</span><strong>{value}</strong></div>; }

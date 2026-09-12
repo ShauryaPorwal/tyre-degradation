@@ -8,7 +8,7 @@ features:
 	uv run python -m cleanroom.physics.pipeline
 
 model:
-	uv run python -m cleanroom.model.fit
+    py -m cleanroom.ml.train
 
 validate:
 	uv run python -m cleanroom.validate.run

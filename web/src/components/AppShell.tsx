@@ -12,7 +12,10 @@ const NAV = [
   { href: "/curves", label: "Tyre Curves", sub: "Read the wear rate", icon: "⌁" },
   { href: "/next", label: "Next Run", sub: "Make the call", icon: "⚑" },
   { href: "/sim", label: "Live Sim", sub: "Validate it live", icon: "⌁" },
+  { href: "/telemetry", label: "Telemetry", sub: "Read the sensor stream", icon: "⌁" },
   { href: "/model", label: "ML Model", sub: "Backend predictor", icon: "◇" },
+  { href: "/validation", label: "Validation", sub: "Prove the model", icon: "✓" },
+  { href: "/demo", label: "Demo Mode", sub: "Run pitch scenarios", icon: "▶" },
   { href: "/browse", label: "Session Log", sub: "Browse the archive", icon: "▦" },
 ];
 
@@ -37,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="f1-sidebar-head">
           <Link href="/" className="f1-brand" aria-label="CLEANROOM pit wall home">
             <span className="f1-brand-mark">C</span>
-            <span className="f1-brand-copy">CLEANROOM<span>.</span><small>TYRE INTELLIGENCE</small></span>
+          <span className="f1-brand-copy">CLEANROOM<span>.</span><small>TYRE INTELLIGENCE</small></span>
           </Link>
           <button className="f1-collapse-btn" onClick={() => setCollapsed((v) => !v)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             {collapsed ? "›" : "‹"}
@@ -57,6 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="f1-sidebar-status">
           <span><i className="status-dot good" /> Feed integrity <b>READY</b></span>
+          <span><small>DATA SOURCE</small> DEMO DATA</span>
           <span><small>SESSION</small> SYNTHETIC V2</span>
           <span><small>ACTIVE</small> 2025_ESP_FP2</span>
         </div>
@@ -64,11 +68,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="f1-main-col">
         <header className="f1-topbar">
-          <div className="f1-session-title"><span>PIT WALL / {pathname === "/" ? "PIT WALL" : pathname.slice(1).toUpperCase()}</span><b>Spanish Grand Prix 2025 · FP2</b></div>
+          <div className="f1-session-title"><span>PIT WALL / {pathname === "/" ? "PIT WALL" : pathname.slice(1).toUpperCase()}</span><b>DEMO DATA · SYNTHETIC SESSION</b></div>
           <div className="f1-topbar-metrics">
-            <div><small>MODE</small><b><i className="status-dot live" /> LIVE MONITOR</b></div>
-            <SessionTimer />
-            <div><small>TRACK STATE</small><b><i className="status-dot good" /> GREEN</b></div>
+            <div className="telemetry-ticker" aria-label="Live track telemetry">
+              <span>TRACK TEMP: 42.4{"\u00b0"}C</span>
+              <span>AIR TEMP: 28.1{"\u00b0"}C</span>
+              <span>WIND: 4.2 KM/H</span>
+            </div>
           </div>
           <div className="f1-topbar-actions">
             <button className="f1-action-btn" onClick={() => setDrawerOpen(true)}>How do we know?</button>
@@ -86,13 +92,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-function SessionTimer() {
-  const [seconds, setSeconds] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setSeconds((value) => value + 1), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return <div><small>UPTIME</small><b>{String(Math.floor(seconds / 60)).padStart(2, "0")}:{String(seconds % 60).padStart(2, "0")}</b></div>;
-}
-

@@ -23,7 +23,13 @@ dependencies = [
 [project.optional-dependencies]
 # numpyro/jax/lightgbm enter at Phase 4/5 (docs/SPEC.md section 8); kept out of the
 # base install so Phase 0 environments resolve quickly on any Python >= 3.11.
-model = ["numpyro", "jax", "lightgbm", "anthropic"]
+model = [
+  "catboost",
+  "xgboost",
+  "lightgbm",
+  "scikit-learn",
+  "joblib"
+]
 dev = ["pytest", "hypothesis", "ruff", "matplotlib"]
 
 [build-system]
