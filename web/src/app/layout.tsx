@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import { Rajdhani, Roboto_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/Header";
+import { AppShell } from "@/components/AppShell";
+import { RaceBackground } from "@/components/RaceBackground";
+
+const rajdhani = Rajdhani({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-rajdhani" });
+const robotoMono = Roboto_Mono({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-roboto-mono" });
 
 export const metadata: Metadata = {
   title: "CLEANROOM — tyre degradation, deconfounded",
@@ -10,10 +15,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${rajdhani.variable} ${robotoMono.variable}`}>
       <body>
-        <Header />
-        <main className="main">{children}</main>
+        <div className="site-root">
+          <RaceBackground />
+          <AppShell>{children}</AppShell>
+        </div>
       </body>
     </html>
   );

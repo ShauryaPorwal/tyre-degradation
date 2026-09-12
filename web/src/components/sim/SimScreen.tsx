@@ -22,6 +22,7 @@ import {
   TyrePanel,
 } from "@/components/sim/SimSidePanels";
 import { SimLapLedger } from "@/components/sim/SimLapLedger";
+import { predictLapTime } from "@/lib/ml";
 
 const TICK_MS = 700;
 
@@ -146,12 +147,7 @@ export function SimScreen() {
 
     const controller = new AbortController();
 
-    fetch("http://127.0.0.1:8000/api/ml/predict", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    predictLapTime({
         lap: lap.lap + 1,
         compound: lap.compound,
         tyre_age:
@@ -163,16 +159,7 @@ export function SimScreen() {
         session_type: "Race",
         fresh_tyre: false,
         rainfall: false,
-      }),
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`ML API returned ${response.status}`);
-        }
-
-        return response.json();
-      })
+      }, controller.signal)
       .then((data) => {
         if (
           typeof data.predicted_lap_time_s ===
