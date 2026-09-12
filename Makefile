@@ -3,12 +3,8 @@
 harvest:
 	uv run python -m cleanroom.ingest.fastf1_harvest
 
-features:
-	uv run python -m cleanroom.clean.pipeline
-	uv run python -m cleanroom.physics.pipeline
-
 model:
-    py -m cleanroom.ml.train
+    uv run python -m cleanroom.ml.train
 
 validate:
 	uv run python -m cleanroom.validate.run

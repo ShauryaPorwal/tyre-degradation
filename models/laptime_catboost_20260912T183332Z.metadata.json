@@ -1,0 +1,91 @@
+{
+  "model_id": "laptime_catboost_20260912T183332Z",
+  "version": 1,
+  "created_utc": "20260912T183332Z",
+  "selected": "CatBoost",
+  "selection_rule": "lowest TEST RMSE among models that beat the deterministic baseline; else baseline",
+  "sha256": "8ca6062ee4f0bfd9d21758ef466a1d55eba3bc8b0b09fe9adeda416e8d28ed93",
+  "dataset": {
+    "source": "laps.json",
+    "rows_in": 520,
+    "rows_kept": 400,
+    "dropped": {
+      "bad_or_missing_lap_time": 0,
+      "pit_or_flag_laps": 120
+    },
+    "train": 280,
+    "val": 60,
+    "test": 60,
+    "split": "grouped by session_id+driver (GroupShuffleSplit 70/15/15), seed=20260823"
+  },
+  "target": "lap_time (s), clean laps only (is_accurate, no pit, green flag)",
+  "features": [
+    "tyre_life",
+    "stint",
+    "lap_number",
+    "session_clock_s",
+    "track_temp",
+    "air_temp",
+    "speed_i1",
+    "speed_i2",
+    "speed_fl",
+    "speed_st",
+    "fresh_tyre",
+    "rainfall",
+    "compound",
+    "driver",
+    "team",
+    "circuit",
+    "session_type"
+  ],
+  "results": {
+    "deterministic_baseline": {
+      "metrics": {
+        "mae": 0.8265988095238339,
+        "rmse": 0.8627005624694919,
+        "bias": 0.8265988095238339
+      },
+      "intercept": 82.33263968448016,
+      "deg_per_lap": 0.33520511701013067,
+      "stint_effect": -0.7157261904761826,
+      "median_lap": 81.91550000000001,
+      "ref_age": 1.0
+    },
+    "CatBoost": {
+      "metrics": {
+        "mae": 0.8253360468581801,
+        "rmse": 0.8573132713578181,
+        "bias": 0.8253360468581801
+      },
+      "fit_seconds": 0.91,
+      "best_iteration": 636
+    },
+    "XGBoost": {
+      "metrics": {
+        "mae": 0.8752001861572277,
+        "rmse": 0.9067227936467138,
+        "bias": 0.8752001861572277
+      },
+      "fit_seconds": 0.57,
+      "best_iteration": null
+    },
+    "LightGBM": {
+      "metrics": {
+        "mae": 0.9211356507145605,
+        "rmse": 0.949210221354996,
+        "bias": 0.9211356507145605
+      },
+      "fit_seconds": 0.1,
+      "best_iteration": 277
+    }
+  },
+  "library_versions": {
+    "sklearn": "1.9.1",
+    "xgboost": "3.4.1",
+    "lightgbm": "4.7.0",
+    "catboost": "1.2.10",
+    "pandas": "2.3.3",
+    "numpy": "2.5.3",
+    "joblib": "1.6.0"
+  }
+}
