@@ -7,11 +7,11 @@ dependencies = [
   "fastf1>=3.4",
   "httpx",
   "tenacity",
-  "pandas",
+  "pandas==2.2.3",
   "pyarrow",
   "duckdb",
   "pandera",
-  "numpy",
+  "numpy==2.3.5",
   "scipy",
   "statsmodels",
   "fastapi",
@@ -24,11 +24,11 @@ dependencies = [
 # numpyro/jax/lightgbm enter at Phase 4/5 (docs/SPEC.md section 8); kept out of the
 # base install so Phase 0 environments resolve quickly on any Python >= 3.11.
 model = [
-  "catboost",
+  "catboost==1.2.10",
   "xgboost",
   "lightgbm",
-  "scikit-learn",
-  "joblib"
+  "scikit-learn==1.8.0",
+  "joblib==1.5.3"
 ]
 dev = ["pytest", "hypothesis", "ruff", "matplotlib"]
 

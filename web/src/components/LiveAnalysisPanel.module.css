@@ -1,0 +1,27 @@
+.panel { padding: clamp(16px,3vw,32px); color: #eef4fa; background: #080c12; border-radius: 16px; font-family: system-ui,sans-serif; }
+.panel h1 { font-size: clamp(26px,4vw,40px); margin: 8px 0; }
+.panel h2 { font-size: 18px; margin: 24px 0 14px; text-transform: capitalize; }
+.panel h3 { font-size: 14px; margin: 0 0 16px; color: #60eb94; text-transform: uppercase; letter-spacing: .05em; }
+.panel p { line-height: 1.6; color: #b0bfd0; }
+.eyebrow { color: #60eb94 !important; font-size: 12px; letter-spacing: .12em; }
+.notice { padding: 16px; margin: 18px 0; border: 1px solid #806237; border-radius: 10px; color: #f5dca8 !important; background: #201b14; line-height: 1.6; }
+.fieldset { min-width: 0; padding: 0; border: 0; }
+.fieldset legend { margin: 18px 0; font-weight: 700; }
+.selection { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 12px; }
+.panel label { display: grid; gap: 7px; font-size: 12px; color: #b8c7d8; }
+.panel input,.panel select { width: 100%; box-sizing: border-box; padding: 11px; color: #edf5ff; background: #0d1520; border: 1px solid #3b4c61; border-radius: 7px; font: inherit; }
+.panel button { padding: 12px 16px; border: 1px solid #3b4c61; background: #142133; color: #eaf2fc; border-radius: 8px; cursor: pointer; }
+.panel button:disabled { opacity: .55; cursor: wait; }
+.panel :is(input,select,button):focus-visible { outline: 2px solid #60eb94; outline-offset: 3px; }
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
+.toolbar span { color: #f5dca8; font-size: 12px; }
+.wheelGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.results { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 16px; }
+.card { min-width: 0; padding: 20px; background: #111b27; border: 1px solid #2b3d51; border-radius: 12px; }
+.card h2 { margin-top: 0; color: #60eb94; }
+.inputs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid #243347; font-size: 13px; }
+.row dt { color: #a9bbce; text-transform: capitalize; overflow-wrap: anywhere; }
+.row dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.primary { margin: 20px 0; background: #60eb94 !important; color: #07140c !important; font-weight: 800; }
+@media(max-width:700px) { .wheelGrid { grid-template-columns: 1fr; } }

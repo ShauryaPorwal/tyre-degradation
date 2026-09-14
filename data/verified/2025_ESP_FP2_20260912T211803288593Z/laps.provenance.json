@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source": "FASTF1",
+  "fastf1_version": "3.8.3",
+  "exported_at": "20260912T211803288593Z",
+  "session_id": "2025_ESP_FP2",
+  "requested_year": 2025,
+  "requested_round": 9,
+  "event_name": "Spanish Grand Prix",
+  "event_location": "Barcelona",
+  "session_name": "Practice 2",
+  "circuit_label": "Barcelona",
+  "row_count": 581,
+  "sha256": "9846334ca5560f24e3ceaee3d610870fb4194f59db14b175d3c67cf626697521",
+  "weather_errors": [],
+  "row_or_telemetry_errors": [],
+  "provenance_note": "Exported through FastF1 using its upstream/local cache. Hash verifies local file integrity, not an FIA signature.",
+  "missing_private_channels": [
+    "fuel_kg",
+    "tyre_pressures",
+    "tyre_surface_temperatures",
+    "tyre_carcass_temperatures"
+  ]
+}

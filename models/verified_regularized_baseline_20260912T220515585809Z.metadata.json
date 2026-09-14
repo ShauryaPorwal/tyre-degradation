@@ -1,0 +1,121 @@
+{
+  "model_id": "verified_regularized_baseline_20260912T220515585809Z",
+  "trained_at": "20260912T220515585809Z",
+  "selected": "regularized_baseline",
+  "target": "retrospective_lap_time_s",
+  "sha256": "d59a4eadafba586877bda63a13b884e463fdfc33e2fa4d5a46804d88e39f9c6b",
+  "features": [
+    "tyre_life",
+    "stint",
+    "lap_number",
+    "session_clock_s",
+    "track_temp",
+    "air_temp",
+    "speed_i1",
+    "speed_i2",
+    "speed_fl",
+    "speed_st",
+    "fresh_tyre",
+    "rainfall",
+    "compound",
+    "driver",
+    "team",
+    "circuit",
+    "session_type"
+  ],
+  "val_metrics": {
+    "mae": 2.151548795967868,
+    "rmse": 3.3396782386746717,
+    "bias": -0.7006045603490861
+  },
+  "validation_candidates": {
+    "CatBoost": {
+      "mae": 1.8741381434196496,
+      "rmse": 4.065834739477056,
+      "bias": -0.07794155065083802
+    },
+    "regularized_baseline": {
+      "mae": 2.151548795967868,
+      "rmse": 3.3396782386746717,
+      "bias": -0.7006045603490861
+    }
+  },
+  "test_metrics": {
+    "mae": 1.800221844742183,
+    "rmse": 2.2400307904923342,
+    "bias": -0.7356639245703461
+  },
+  "selection_rule": "Lowest validation RMSE; test reported only after selection.",
+  "partitions": {
+    "train": [
+      "2025_ESP_FP1"
+    ],
+    "validation": [
+      "2025_ESP_FP2"
+    ],
+    "test": [
+      "2025_ESP_R"
+    ]
+  },
+  "rows": {
+    "train": 293,
+    "validation": 344,
+    "test": 980
+  },
+  "dropped": {
+    "total_in": 2299,
+    "invalid_target": 186,
+    "not_accurate": 461,
+    "pit_or_unknown": 0,
+    "not_green": 26,
+    "deleted": 9,
+    "unknown_compound": 0,
+    "invalid_age": 0,
+    "invalid_lap": 0,
+    "total_kept": 1617
+  },
+  "dataset_sources": [
+    {
+      "session_id": "2025_ESP_FP1",
+      "sha256": "fd4eac88c67a170ff2ac04c8a1216d02222dca524946c9cb5b7f29e9f637e28a",
+      "path": "C:\\Users\\Lenovo\\Downloads\\tyre\\cleanroom\\data\\verified\\2025_ESP_FP1_20260912T220321976547Z\\laps.json"
+    },
+    {
+      "session_id": "2025_ESP_FP2",
+      "sha256": "9846334ca5560f24e3ceaee3d610870fb4194f59db14b175d3c67cf626697521",
+      "path": "C:\\Users\\Lenovo\\Downloads\\tyre\\cleanroom\\data\\verified\\2025_ESP_FP2_20260912T211803288593Z\\laps.json"
+    },
+    {
+      "session_id": "2025_ESP_R",
+      "sha256": "b7a2032909a4d0d238a1a3c2b2793340b38c06a605e6eadfd67c8434e47665ec",
+      "path": "C:\\Users\\Lenovo\\Downloads\\tyre\\cleanroom\\data\\verified\\2025_ESP_R_20260912T215730153807Z\\laps.json"
+    }
+  ],
+  "compound_counts": {
+    "train": {
+      "HARD": 154,
+      "SOFT": 74,
+      "MEDIUM": 65
+    },
+    "validation": {
+      "SOFT": 181,
+      "MEDIUM": 145,
+      "HARD": 18
+    },
+    "test": {
+      "SOFT": 521,
+      "MEDIUM": 454,
+      "HARD": 5
+    }
+  },
+  "versions": {
+    "catboost": "1.2.10",
+    "sklearn": "1.9.1"
+  },
+  "limitations": [
+    "Same-lap speed traps: not a next-lap forecast.",
+    "No causal tyre degradation or private sensor model.",
+    "Three sessions are an initial demonstration, not broad race generalization.",
+    "Repeated tuning against test results invalidates held-out claims."
+  ]
+}

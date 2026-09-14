@@ -1,0 +1,25 @@
+.panel { max-width: 1150px; margin: auto; padding: 32px 24px; color: #e6edf5; }
+.panel h1 { font-size: 28px; margin: 6px 0 12px; }
+.panel h2 { font-size: 19px; margin: 0 0 12px; }
+.panel p { line-height: 1.6; }
+.muted { color: #afbdcc; }
+.notice { border-left: 3px solid #eaba60; background: #262219; padding: 14px 18px; margin: 20px 0; }
+.form, .card { border: 1px solid #354352; border-radius: 12px; background: #101923; padding: 22px; margin: 20px 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; }
+.controls label { display: grid; gap: 7px; flex: 1 1 170px; }
+.panel input, .panel select { padding: 10px; border: 1px solid #546679; border-radius: 6px; background: #09111a; color: #fff; width: 100%; }
+.check { display: flex; gap: 10px; align-items: center; margin: 20px 0; }
+.check input { width: auto; }
+.panel button { background: #69e5ba; color: #05140e; border: 0; padding: 12px 20px; border-radius: 6px; font-weight: 700; margin-top: 18px; cursor: pointer; }
+.panel button:disabled { opacity: .55; cursor: wait; }
+.panel :focus-visible { outline: 3px solid #69e5ba; outline-offset: 3px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.stats span { border: 1px solid #354352; padding: 10px 14px; border-radius: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.tableWrap { overflow-x: auto; }
+.panel table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+.panel th, .panel td { text-align: left; padding: 10px; border-bottom: 1px solid #354352; }
+.panel summary { cursor: pointer; padding: 12px 0; }
+.raw { color: #69e5ba; }
+.adjusted { color: #eaba60; }
+.error { color: #ffb3b3; padding: 16px; border: 1px solid #c35a5a; }

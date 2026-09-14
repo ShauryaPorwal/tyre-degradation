@@ -1,0 +1,30 @@
+.panel { background:#080d14; color:#eef5fb; padding:clamp(16px,3vw,32px); border-radius:16px; font-family:system-ui,sans-serif; }
+.panel h1 { font-size:clamp(26px,4vw,40px); margin:8px 0; }
+.panel h2 { color:#65efa0; font-size:18px; margin:0 0 14px; }
+.panel p,.panel li { color:#bccbdd; line-height:1.6; }
+.eyebrow { color:#65efa0 !important; font-size:12px; letter-spacing:.12em; }
+.header { display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.buttons { display:flex; flex-wrap:wrap; gap:10px; }
+.panel button { background:#16283b; color:#edf7ff; padding:12px 16px; border:1px solid #526984; border-radius:8px; cursor:pointer; }
+.panel button:disabled { opacity:.5; cursor:default; }
+.panel button:focus-visible,.panel summary:focus-visible { outline:2px solid #65efa0; outline-offset:3px; }
+.notice { background:#261f13; border:1px solid #9c7b3c; padding:16px; border-radius:10px; color:#ffdf9d !important; }
+.metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin:20px 0; }
+.metric,.card { background:#111d2b; border:1px solid #31465c; border-radius:12px; padding:20px; min-width:0; }
+.metric p { margin:0 0 12px; font-size:12px; text-transform:uppercase; }
+.metric strong { color:#65efa0; font-size:24px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.card { margin-bottom:18px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr)); gap:18px; }
+.panel dl { margin:0; }
+.panel dl div { display:grid; grid-template-columns:minmax(120px,1fr) minmax(0,2fr); gap:18px; padding:10px 0; border-bottom:1px solid #293c50; }
+.panel dt { color:#b2c6d9; text-transform:capitalize; }
+.panel dd { margin:0; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.scroll { overflow-x:auto; }
+.panel table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+.panel th,.panel td { padding:12px 10px; border-bottom:1px solid #304359; vertical-align:top; font-variant-numeric:tabular-nums; }
+.panel thead th { color:#a8c4dc; font-size:12px; text-transform:uppercase; }
+.panel tbody th { font-weight:600; }
+.panel caption { text-align:left; color:#a8b9cb; font-size:13px; padding-bottom:14px; }
+.panel code { overflow-wrap:anywhere; font-size:12px; }
+.panel summary { cursor:pointer; padding:14px 0; color:#65efa0; }
+.panel li { margin-bottom:10px; }

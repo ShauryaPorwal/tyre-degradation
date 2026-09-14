@@ -1,5 +1,2 @@
-import { DemoMode } from "@/components/DemoMode";
-
-export default function DemoPage() {
-  return <DemoMode />;
-}
+import { Strategy } from "@/components/Strategy";
+export default function Page() { return <Strategy demo />; }
